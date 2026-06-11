@@ -1,0 +1,8 @@
+{
+  "name": "Manejo Agropec Fazenda Brasileira Augusta",
+  "description": "Questionário de Dimensionamento de Plantel e Inteligência Estratégica de Fábrica de Ração para a Fazenda Brasileira Augusta.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

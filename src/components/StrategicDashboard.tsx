@@ -1,0 +1,342 @@
+import React, { useState } from "react";
+import {
+  TrendingUp,
+  FileText,
+  Mail,
+  Calendar,
+  Building,
+  User,
+  ExternalLink,
+  ChevronRight,
+  Database,
+  Printer,
+  ChevronDown,
+  Percent,
+  CheckCircle,
+  Clock
+} from "lucide-react";
+import { Submission } from "../types.js";
+import { categoryLabels } from "../data.js";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
+
+interface StrategicDashboardProps {
+  submissions: Submission[];
+  onSelectSubmission: (sub: Submission) => void;
+  selectedSubmission: Submission | null;
+  downloadPDF: (sub: Submission) => void;
+}
+
+const COLORS = [
+  "#2D5A27", "#3E7237", "#A67C52", "#C9A883",
+  "#8FAC9E", "#5A7C52", "#768178", "#BDC6C1", "#C9A883"
+];
+
+export default function StrategicDashboard({
+  submissions,
+  onSelectSubmission,
+  selectedSubmission,
+  downloadPDF
+}: StrategicDashboardProps) {
+  const currentSub = selectedSubmission || submissions[0];
+  const [activeTab, setActiveTab] = useState<"visuals" | "emails">("visuals");
+
+  if (!currentSub) {
+    return (
+      <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 text-center text-sm text-stone-500">
+        Nenhum dado cadastrado para dimensionamento estratégico.
+      </div>
+    );
+  }
+
+  const state = currentSub.formState;
+  const metrics = currentSub.keyMetrics;
+
+  // Prepare chart data for herd composition biomass
+  const biomassChartData = Object.keys(state.herd)
+    .map((key) => {
+      const value = state.herd[key];
+      const weight = value?.heads > 0 ? value.heads * value.weight : 0;
+      return {
+        name: categoryLabels[key] || key,
+        Cabeças: value?.heads || 0,
+        "Biomassa (kg PV)": weight,
+        "Ingestão MS (kg/dia)": Math.round(value?.heads * value.weight * (value.imsCoef / 100))
+      };
+    })
+    .filter((v) => v.Cabeças > 0);
+
+  // Prepare growth forecast chart
+  const growthChartData = [
+    { name: "Atual", "Rebanho (Cabeças)": metrics.totalHeads },
+    { name: "Meta 24 Meses", "Rebanho (Cabeças)": state.metaSurgimento24 || metrics.totalHeads * 1.2 },
+    { name: "Meta 36 Meses", "Rebanho (Cabeças)": state.metaSurgimento36 || metrics.totalHeads * 1.5 }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Executive Summary Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-primary text-white rounded-sm p-4 shadow-md border-b-4 border-accent">
+          <span className="text-[10px] text-stone-200 font-mono block mb-1">TOTAL DE CABEÇAS</span>
+          <div className="text-3xl font-bold font-serif text-accent-light">{metrics.totalHeads}</div>
+          <span className="text-[10px] text-stone-200">Cabeças no plantel FBA</span>
+        </div>
+        <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-4 shadow-sm">
+          <span className="text-[10px] text-stone-500 font-mono block mb-1">BIOMASSA ATIVA</span>
+          <div className="text-2xl font-bold font-serif text-primary">
+            {metrics.totalBiomass.toLocaleString("pt-BR")} <span className="text-xs text-stone-500 font-normal">kg PV</span>
+          </div>
+          <span className="text-[10px] text-stone-500">Peso vivo aproximado</span>
+        </div>
+        <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-4 shadow-sm">
+          <span className="text-[10px] text-stone-500 font-mono block mb-1">DEMANDA MATÉRIA SECA</span>
+          <div className="text-2xl font-bold font-serif text-primary">
+            {metrics.totalMsDia.toLocaleString("pt-BR")} <span className="text-xs text-stone-500 font-normal">kg/dia</span>
+          </div>
+          <span className="text-[10px] text-stone-500">~{Math.round(metrics.totalMsMes).toLocaleString("pt-BR")} kg/mês</span>
+        </div>
+        <div className="bg-white border-y border-r border-warm-border border-l-4 border-accent rounded-sm p-4 shadow-sm">
+          <span className="text-[10px] text-stone-500 font-mono block mb-1">CUSTO ALIMENTAÇÃO MÊS</span>
+          <div className="text-2xl font-bold font-serif text-primary">
+            R$ {metrics.totalMonthlyFeedCost.toLocaleString("pt-BR")}
+          </div>
+          <span className="text-[10px] text-stone-500">R$ {metrics.costPerAnimalMonth}/Animal/Mês</span>
+        </div>
+      </div>
+
+      {/* Main Analysis and Graph Shell */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Detail Diagnostics Panel */}
+        <div className="lg:col-span-2 bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-warm-border pb-3">
+            <div>
+              <h3 className="font-serif font-bold text-stone-900 text-lg">
+                Laudo Estratégico & Engenharia de Fábrica
+              </h3>
+              <p className="text-[10px] text-stone-500 font-mono">
+                Por: Consultor Técnico FBA • ID: {currentSub.id} ({new Date(currentSub.timestamp).toLocaleDateString()})
+              </p>
+            </div>
+            <button
+              onClick={() => downloadPDF(currentSub)}
+              className="bg-primary hover:bg-primary-light text-white text-xs px-3.5 py-2 rounded-sm flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-primary/10 cursor-pointer font-bold uppercase tracking-wider"
+            >
+              <Printer className="w-4 h-4 text-accent-light" />
+              <span>Imprimir PDF Completo</span>
+            </button>
+          </div>
+
+          {/* Diagnosis Text */}
+          <div className="prose max-w-none text-xs text-stone-700 leading-relaxed space-y-4 max-h-[380px] overflow-y-auto pr-2" id="diagnostico-laudo-corpo">
+            <div className="whitespace-pre-line font-serif leading-relaxed text-sm bg-warm-quote/45 p-4 rounded-sm border border-warm-border">
+              {currentSub.diagnostic}
+            </div>
+          </div>
+
+          {/* Suggestions and capacities */}
+          <div className="grid grid-cols-2 gap-4 bg-warm-quote border border-warm-border rounded-sm p-4">
+            <div>
+              <span className="text-[10px] text-stone-500 font-mono font-bold uppercase tracking-wider block mb-1">MISTURADOR SELECIONADO</span>
+              <div className="text-sm font-bold text-primary font-serif">
+                Modelo Vertical - {metrics.suggestedMixerCapacityKg} kg Batch
+              </div>
+              <p className="text-[10px] text-stone-600 mt-0.5 leading-normal">
+                Capacidade ideal para dosar formulado seco com motores elétricos de {metrics.suggestedMixerCapacityKg < 500 ? "3 CV" : "5 CV"}.
+              </p>
+            </div>
+            <div>
+              <span className="text-[10px] text-stone-500 font-mono font-bold uppercase tracking-wider block mb-1">SILOS DE ARMAZENAGEM</span>
+              <div className="text-sm font-bold text-primary font-serif">
+                Silo Cilíndrico de {metrics.suggestedSiloVolumeM3} m³
+              </div>
+              <p className="text-[10px] text-stone-600 mt-0.5 leading-normal">
+                Garante guarda rotativa de grãos minerais estáveis, protegidos da maresia local de Nísia Floresta, RN.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Side column */}
+        <div className="bg-white border-y border-r border-warm-border border-l-4 border-accent rounded-sm p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex border-b border-warm-border pb-2 mb-3 justify-between items-center">
+              <h4 className="font-serif font-bold text-stone-900 text-xs">Mapeamento Vetorial e Metas</h4>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setActiveTab("visuals")}
+                  className={`text-[10px] px-2.5 py-1 rounded-sm cursor-pointer transition-all ${activeTab === "visuals" ? "bg-primary font-bold text-white shadow-sm" : "text-stone-500 hover:bg-stone-100"}`}
+                >
+                  Gráficos
+                </button>
+                <button
+                  onClick={() => setActiveTab("emails")}
+                  className={`text-[10px] px-2.5 py-1 rounded-sm cursor-pointer transition-all ${activeTab === "emails" ? "bg-primary font-bold text-white shadow-sm" : "text-stone-500 hover:bg-stone-100"}`}
+                >
+                  Outbox Emails
+                </button>
+              </div>
+            </div>
+
+            {activeTab === "visuals" ? (
+              <div className="space-y-4">
+                {/* Recharts Biomassa */}
+                <div>
+                  <span className="text-[10px] text-stone-500 font-mono block mb-1">Carga de Biomassa por Categoria (kg PV)</span>
+                  <div className="h-[180px] w-full">
+                    {biomassChartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={biomassChartData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E2D1" />
+                          <XAxis dataKey="name" tick={{ fontSize: 8 }} />
+                          <YAxis tick={{ fontSize: 8 }} />
+                          <Tooltip wrapperStyle={{ fontSize: "10px" }} />
+                          <Bar dataKey="Biomassa (kg PV)" fill="#2D5A27" radius={[0, 0, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-[10px] text-stone-400 font-serif italic">Nenhum animal preenchido.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recharts Metas de Crescimento */}
+                <div>
+                  <span className="text-[10px] text-stone-500 font-mono block mb-1">Previsão e Planejamento de Rebanho</span>
+                  <div className="h-[140px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={growthChartData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E8E2D1" />
+                        <XAxis type="number" tick={{ fontSize: 8 }} />
+                        <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} width={60} />
+                        <Tooltip wrapperStyle={{ fontSize: "10px" }} />
+                        <Bar dataKey="Rebanho (Cabeças)" fill="#A67C52" radius={[0, 0, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Outbox Emails */
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {currentSub.emailsSent.map((email, i) => (
+                  <div key={i} className="bg-warm-quote/50 rounded-sm p-3 border border-warm-border space-y-1.5 text-xs text-stone-700 shadow-sm">
+                    <div className="flex justify-between items-center text-[9px] text-stone-400 font-mono border-b border-warm-border pb-1">
+                      <span className="flex items-center gap-1 font-bold text-accent">
+                        <Clock className="w-3 h-3 text-accent" />
+                        NOTIFICAÇÃO ENVIADA (SIM)
+                      </span>
+                      <span>{new Date(email.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    <div>
+                      <span className="font-semibold text-stone-600">Para:</span> <span className="font-mono text-[10px] text-stone-800">{email.to}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-stone-600">Assunto:</span> <span className="font-semibold text-primary">{email.subject}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded-sm text-[10px] font-mono text-stone-600 max-h-[80px] overflow-y-auto border border-warm-border leading-normal">
+                      {email.body}
+                    </div>
+                    <div className="flex items-center gap-1 text-[9px] text-emerald-700 font-semibold">
+                      <CheckCircle className="w-3 h-3 text-emerald-600" />
+                      Status: Enviado com Sucesso, Laudo PDF Incorporado.
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Historical Submissions Table - owner strategic decisions */}
+      <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-4 pb-2 border-b border-warm-border animate-fadeIn">
+          <Database className="w-4 h-4 text-primary" />
+          <div>
+            <h4 className="font-serif font-bold text-stone-900 text-base">Controle de Submissões e Lançamentos Existentes</h4>
+            <span className="text-[10px] text-stone-500">Histórico de diagnósticos da Fazenda Brasileira Augusta</span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left text-stone-600">
+            <thead className="text-[10px] text-stone-500 uppercase bg-stone-50 font-mono border-b border-warm-border">
+              <tr>
+                <th className="px-3 py-2.5">Produtor / Cargo</th>
+                <th className="px-3 py-2.5 text-center">Plantel</th>
+                <th className="px-3 py-2.5">Demanda MS/Mês</th>
+                <th className="px-3 py-2.5">CAPEX Pretendido</th>
+                <th className="px-3 py-2.5">GMD Bois</th>
+                <th className="px-3 py-2.5 text-right w-[180px]">Gestão</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {submissions.map((sub) => {
+                const isSelected = sub.id === currentSub.id;
+                return (
+                  <tr
+                    key={sub.id}
+                    className={`hover:bg-stone-50 transition-colors cursor-pointer ${isSelected ? "bg-warm-quote font-medium" : ""}`}
+                    onClick={() => onSelectSubmission(sub)}
+                  >
+                    <td className="px-3 py-3">
+                      <div className="font-bold text-stone-900 flex items-center gap-1.5 font-serif">
+                        <User className="w-3.5 h-3.5 text-stone-400" />
+                        {sub.formState.nomeProdutor}
+                      </div>
+                      <div className="text-[10px] text-stone-400 font-mono">{sub.formState.cargo} • {sub.formState.contatoZap}</div>
+                    </td>
+                    <td className="px-3 py-3 text-center font-bold text-primary font-mono">
+                      {sub.keyMetrics.totalHeads}
+                    </td>
+                    <td className="px-3 py-3 font-mono">
+                      {Math.round(sub.keyMetrics.totalMsMes).toLocaleString("pt-BR")} kg
+                    </td>
+                    <td className="px-3 py-3 font-bold text-accent font-serif">
+                      R$ {sub.formState.capexOrcamento.toLocaleString("pt-BR")}
+                    </td>
+                    <td className="px-3 py-3 font-mono text-stone-500">
+                      {sub.formState.boiGmd} kg/dia
+                    </td>
+                    <td className="px-3 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => onSelectSubmission(sub)}
+                          className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2 py-1 rounded-sm text-[10px] font-bold cursor-pointer"
+                        >
+                          Ver
+                        </button>
+                        <button
+                          onClick={() => downloadPDF(sub)}
+                          className="bg-primary text-white hover:bg-primary-light px-2.5 py-1 rounded-sm text-[10px] font-bold flex items-center gap-1 shadow shadow-primary/25 cursor-pointer"
+                          title="Imprimir laudo"
+                        >
+                          <Printer className="w-3 h-3 text-accent-light" />
+                          <span>Laudo PDF</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
