@@ -14,7 +14,7 @@ import {
   Printer
 } from "lucide-react";
 import { FormState, Submission } from "./types.js";
-import { defaultFormState } from "./data.js";
+import { emptyFormState } from "./data.js";
 import FormBlocks from "./components/FormBlocks.jsx";
 import StrategicDashboard from "./components/StrategicDashboard.jsx";
 import ChatAssistant from "./components/ChatAssistant.jsx";
@@ -22,7 +22,7 @@ import ImageGenerator from "./components/ImageGenerator.jsx";
 
 export default function App() {
   const [activeView, setActiveView] = useState<"form" | "dashboard">("form");
-  const [formState, setFormState] = useState<FormState>(defaultFormState);
+  const [formState, setFormState] = useState<FormState>(emptyFormState);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -316,11 +316,14 @@ export default function App() {
       }
     });
 
-    if (formState.extraCatName && formState.extraCatHeads > 0) {
-      heads += Number(formState.extraCatHeads);
-      biomass += formState.extraCatHeads * formState.extraCatWeight;
-      msDia += formState.extraCatHeads * formState.extraCatWeight * (formState.extraCatImsCoef / 100);
-    }
+    // Categorias adicionais personalizadas (dinâmicas)
+    (formState.extraCategories || []).forEach((cat) => {
+      if (cat && cat.heads > 0) {
+        heads += Number(cat.heads);
+        biomass += cat.heads * cat.weight;
+        msDia += cat.heads * cat.weight * (cat.imsCoef / 100);
+      }
+    });
 
     const msMes = msDia * 30;
 

@@ -4,6 +4,13 @@ export interface HerdCategoryInfo {
   imsCoef: number; // e.g. 2.0 representing 2.0%
 }
 
+export interface ExtraCategoryInfo {
+  name: string;
+  heads: number;
+  weight: number;
+  imsCoef: number;
+}
+
 export interface EquipmentInfo {
   possui: boolean;
   status: string; // e.g. 'Excelente', 'Mapeado', 'Danificado', 'Inexistente'
@@ -38,6 +45,7 @@ export interface FormState {
   extraCatHeads: number;
   extraCatWeight: number;
   extraCatImsCoef: number;
+  extraCategories?: ExtraCategoryInfo[]; // dynamic custom categories (Bloco 02)
   rotinaControle: string;
 
   // Bloco 03 - Desempenho e Ciclo
@@ -52,16 +60,19 @@ export interface FormState {
   rendimentoCarcaça: number;
   tempoAprov: number;
   racaPredominante: string;
+  racas?: string[]; // multi-select de raças (Bloco 03)
   animaisVendidosAnual: number;
   rotinaDesempenho: string;
 
   // Bloco 04 - Precificação e Receita
   precoArroba: number;
   destinoPrincipal: string;
+  destinoPrincipalOutro?: string; // especificação quando destino = "Outro" (Bloco 04)
   contrato: string;
   descontoMedio: number;
   freteMedio: number;
   outrosCustos: number;
+  custoComercializacao?: number; // frete + comissões + taxas, R$/cabeça (Bloco 04)
   sazonalidade: string[]; // list of months e.g. ["Jan", "Fev"]
   metaReceitaAnual: number;
   rotinaComercial: string;
@@ -72,6 +83,13 @@ export interface FormState {
   estadoMedioPastagem: string;
   producaoEstimadaPastagem: string;
   sistemaPastejo: string;
+  metodoControlePastejo?: string; // método de controle de entrada/saída do pasto (Bloco 05A)
+  correcaoSoloAdubacao?: string; // frequência de correção de solo/adubação (Bloco 05A)
+  usoVinhaca?: string; // uso da vinhaça do alambique (Bloco 05A)
+  custoVinhacaHa?: number; // custo da prática de vinhaça por hectare (Bloco 05A)
+  pragasComuns?: string; // pragas mais comuns na região (Bloco 05A)
+  tecnicasManejo?: string; // técnicas de manejo de pasto adotadas (Bloco 05A)
+  capimTipo?: string; // especificação do tipo de capim como volumoso (Bloco 05B)
   numPiquetes: number;
   adubacaoPastagem: boolean;
   custoMensalPastagem: number;
@@ -120,10 +138,17 @@ export interface FormState {
   metaSurgimento36: number;
   confinamentoFuturo: string;
   categoriaPrioritaria: string;
+  vocacaoPropriedade?: string; // vocação principal da propriedade (Bloco 08)
+  papelFabricaRacao?: string; // papel de uma eventual fábrica de ração (Bloco 08)
+  visaoProprietario?: string; // visão estratégica do proprietário (Bloco 08)
+  visaoGerente?: string; // visão do gerente/manejo (Bloco 08)
+  visaoOperacional?: string; // visão do vaqueiro/operação (Bloco 08)
+  visaoAdministrativa?: string; // visão da secretária/administrativo-financeiro (Bloco 08)
   capexOrcamento: number;
   paybackMeta: string;
   restricaoProcesso: string;
   expectativasGerais: string;
+  contextoReal?: string; // campo aberto final: contexto real, gargalos, observações (Bloco 08)
 }
 
 export interface Submission {
