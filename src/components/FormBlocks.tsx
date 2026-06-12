@@ -12,10 +12,25 @@ import {
   Info,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  Plus,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
-import { FormState, HerdCategoryInfo } from "../types.js";
-import { categoryLabels } from "../data.js";
+import { FormState, HerdCategoryInfo, ExtraCategoryInfo } from "../types.js";
+import {
+  categoryLabels,
+  breedOptions,
+  destinoVendaOptions,
+  estadoPastagemOptions,
+  sistemaPastejoOptions,
+  metodoControlePastejoOptions,
+  correcaoSoloOptions,
+  usoVinhacaOptions,
+  vocacaoOptions,
+  papelFabricaOptions,
+  categoriaPrioritariaOptions,
+} from "../data.js";
 
 interface FormBlocksProps {
   formState: FormState;
@@ -93,6 +108,46 @@ export default function FormBlocks({
     });
   };
 
+  // --- Bloco 02: categorias adicionais dinâmicas ---
+  const extraCategories: ExtraCategoryInfo[] = formState.extraCategories || [];
+
+  const addExtraCategory = () => {
+    onChange({
+      ...formState,
+      extraCategories: [
+        ...extraCategories,
+        { name: "", heads: 0, weight: 0, imsCoef: 2.0 },
+      ],
+    });
+  };
+
+  const updateExtraCategory = (
+    index: number,
+    field: keyof ExtraCategoryInfo,
+    val: string | number
+  ) => {
+    const updated = extraCategories.map((cat, i) =>
+      i === index ? { ...cat, [field]: val } : cat
+    );
+    onChange({ ...formState, extraCategories: updated });
+  };
+
+  const removeExtraCategory = (index: number) => {
+    onChange({
+      ...formState,
+      extraCategories: extraCategories.filter((_, i) => i !== index),
+    });
+  };
+
+  // --- Bloco 03: seleção múltipla de raças ---
+  const toggleRaca = (raca: string) => {
+    const current = formState.racas || [];
+    const updated = current.includes(raca)
+      ? current.filter((r) => r !== raca)
+      : [...current, raca];
+    onChange({ ...formState, racas: updated });
+  };
+
   return (
     <form onSubmit={onSubmit} className="space-y-8" id="pecuaria-bovinos-formulario-fba">
       
@@ -117,7 +172,7 @@ export default function FormBlocks({
               value={formState.nomeProdutor}
               onChange={(e) => handleSimpleFieldChange("nomeProdutor", e.target.value)}
               className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
-              placeholder="Rodrigo de Augusta"
+              placeholder="Seu nome completo aqui"
             />
           </div>
           <div>
@@ -152,29 +207,6 @@ export default function FormBlocks({
               placeholder="Gerente / Zootecnista / Proprietário"
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-[11px] text-stone-600 font-medium mb-1">Como as coisas funcionam na prática no dia a dia? *</label>
-          <textarea
-            required
-            rows={2}
-            value={formState.rotinaPratica}
-            onChange={(e) => handleSimpleFieldChange("rotinaPratica", e.target.value)}
-            className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none placeholder-stone-400"
-            placeholder="Ex: Mistura artesanal na beira do cocho..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] text-stone-600 font-medium mb-1">Observações Iniciais</label>
-          <input
-            type="text"
-            value={formState.obsPrevia}
-            onChange={(e) => handleSimpleFieldChange("obsPrevia", e.target.value)}
-            className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
-            placeholder="Ex: Estamos em transição para confinamento próprio"
-          />
         </div>
       </div>
 
@@ -256,51 +288,86 @@ export default function FormBlocks({
         <div className="pt-3 border-t border-stone-100 bg-stone-50/50 p-4 rounded-xl space-y-3">
           <span className="text-[11px] font-semibold text-stone-700 font-mono flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-accent" />
-            CATEGORIA ADICIONAL PERSONALIZADA (OPCIONAL)
+            CATEGORIAS ADICIONAIS PERSONALIZADAS (OPCIONAL)
           </span>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-[9px] text-stone-500 font-mono mb-1">Nome Categ.</label>
-              <input
-                type="text"
-                value={formState.extraCatName}
-                onChange={(e) => handleSimpleFieldChange("extraCatName", e.target.value)}
-                className="w-full text-[11px] p-2 bg-white rounded border border-stone-300"
-                placeholder="Ex: Vacas de Descarte"
-              />
+
+          {extraCategories.length === 0 && (
+            <p className="text-[10px] text-stone-500 italic">
+              Nenhuma categoria adicional. Use o botão abaixo para registrar categorias que não constam na tabela acima (ex.: vacas de descarte, lote experimental).
+            </p>
+          )}
+
+          {extraCategories.map((cat, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-white p-3 rounded-lg border border-stone-200"
+            >
+              <div className="sm:col-span-4">
+                <label className="block text-[9px] text-stone-500 font-mono mb-1">Nome da Categoria</label>
+                <input
+                  type="text"
+                  value={cat.name}
+                  onChange={(e) => updateExtraCategory(index, "name", e.target.value)}
+                  className="w-full text-[11px] p-2 bg-white rounded border border-stone-300"
+                  placeholder="Ex: Vacas de Descarte"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-[9px] text-stone-500 font-mono mb-1">Nº de Rês</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={cat.heads}
+                  onChange={(e) => updateExtraCategory(index, "heads", Number(e.target.value))}
+                  className="w-full text-[11px] p-2 bg-white rounded border border-stone-300 text-center font-mono"
+                  placeholder="0"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-[9px] text-stone-500 font-mono mb-1">PV Médio (kg)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={cat.weight}
+                  onChange={(e) => updateExtraCategory(index, "weight", Number(e.target.value))}
+                  className="w-full text-[11px] p-2 bg-white rounded border border-stone-300 text-center font-mono"
+                  placeholder="0"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-[9px] text-stone-500 font-mono mb-1">Coef. IMS %</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={cat.imsCoef}
+                  onChange={(e) => updateExtraCategory(index, "imsCoef", Number(e.target.value))}
+                  className="w-full text-[11px] p-2 bg-white rounded border border-stone-300 text-center font-mono"
+                  placeholder="2.0"
+                />
+              </div>
+              <div className="sm:col-span-2 flex sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => removeExtraCategory(index)}
+                  className="flex items-center justify-center gap-1 text-[10px] text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded px-2 py-2 w-full sm:w-auto transition-colors"
+                  title="Remover esta categoria"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="sm:hidden">Remover</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-[9px] text-stone-500 font-mono mb-1">Heads</label>
-              <input
-                type="number"
-                value={formState.extraCatHeads}
-                onChange={(e) => handleSimpleFieldChange("extraCatHeads", Number(e.target.value))}
-                className="w-full text-[11px] p-2 bg-white rounded border border-stone-300 text-center font-mono"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-[9px] text-stone-500 font-mono mb-1">PV Médio (kg)</label>
-              <input
-                type="number"
-                value={formState.extraCatWeight}
-                onChange={(e) => handleSimpleFieldChange("extraCatWeight", Number(e.target.value))}
-                className="w-full text-[11px] p-2 bg-white rounded border border-stone-300 text-center font-mono"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-[9px] text-stone-500 font-mono mb-1">Coef. IMS %</label>
-              <input
-                type="number"
-                step="0.1"
-                value={formState.extraCatImsCoef}
-                onChange={(e) => handleSimpleFieldChange("extraCatImsCoef", Number(e.target.value))}
-                className="w-full text-[11px] p-2 bg-white rounded border border-stone-300 text-center font-mono"
-                placeholder="2.0"
-              />
-            </div>
-          </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addExtraCategory}
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-lg px-3 py-2 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Adicionar nova categoria
+          </button>
         </div>
 
         <div>
@@ -393,7 +460,7 @@ export default function FormBlocks({
                     onChange={() => handleSimpleFieldChange("gmdMedido", "sim")}
                     className="accent-primary"
                   />
-                  <span>Sim, via pesagens sequenciais eletrônicas</span>
+                  <span>Sim, via pesagens sequenciais</span>
                 </label>
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
@@ -466,17 +533,6 @@ export default function FormBlocks({
             />
           </div>
           <div>
-            <label className="block text-[11px] text-stone-600 font-medium mb-1">Raça preponderante *</label>
-            <input
-              type="text"
-              required
-              value={formState.racaPredominante}
-              onChange={(e) => handleSimpleFieldChange("racaPredominante", e.target.value)}
-              className="w-full text-xs p-2 rounded-lg border border-stone-300"
-              placeholder="Ex: Nelore, Brangus, Angus"
-            />
-          </div>
-          <div>
             <label className="block text-[11px] text-stone-600 font-medium mb-1">Nº animais vendidos (últimos 12m) *</label>
             <input
               type="number"
@@ -485,6 +541,32 @@ export default function FormBlocks({
               onChange={(e) => handleSimpleFieldChange("animaisVendidosAnual", Number(e.target.value))}
               className="w-full text-xs p-2 rounded-lg border border-stone-300 font-mono text-center"
             />
+          </div>
+        </div>
+
+        {/* Raças - seleção múltipla */}
+        <div className="bg-stone-50 p-4 rounded-xl space-y-2 border border-stone-100">
+          <span className="text-[11px] font-semibold text-stone-700 block font-mono">
+            Raças (marque todas as predominantes no rebanho) *
+          </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            {breedOptions.map((raca) => {
+              const checked = (formState.racas || []).includes(raca);
+              return (
+                <button
+                  type="button"
+                  key={raca}
+                  onClick={() => toggleRaca(raca)}
+                  className={`p-2 rounded-lg transition-all border text-left ${
+                    checked
+                      ? "bg-primary/5 text-primary border-primary font-semibold"
+                      : "bg-white text-stone-600 border-stone-300 hover:bg-stone-50"
+                  }`}
+                >
+                  {raca}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -526,14 +608,17 @@ export default function FormBlocks({
           </div>
           <div>
             <label className="block text-[11px] text-stone-600 font-medium mb-1">Destino Principal da Venda *</label>
-            <input
-              type="text"
+            <select
               required
               value={formState.destinoPrincipal}
               onChange={(e) => handleSimpleFieldChange("destinoPrincipal", e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg border border-stone-300"
-              placeholder="Ex: Frigorífico local"
-            />
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 bg-white"
+            >
+              <option value="">Selecione...</option>
+              {destinoVendaOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-[11px] text-stone-600 font-medium mb-1">Existe Contrato Regular?</label>
@@ -553,6 +638,35 @@ export default function FormBlocks({
               onChange={(e) => handleSimpleFieldChange("metaReceitaAnual", Number(e.target.value))}
               className="w-full text-xs p-2.5 rounded-lg border border-stone-300 font-mono text-center font-bold text-emerald-600"
             />
+          </div>
+        </div>
+
+        {/* Especificação de "Outro" destino + custo de comercialização */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {formState.destinoPrincipal === "Outro" && (
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Especifique o modelo de venda *</label>
+              <input
+                type="text"
+                required
+                value={formState.destinoPrincipalOutro || ""}
+                onChange={(e) => handleSimpleFieldChange("destinoPrincipalOutro", e.target.value)}
+                className="w-full text-xs p-2.5 rounded-lg border border-stone-300"
+                placeholder="Descreva como a venda é feita"
+              />
+            </div>
+          )}
+          <div>
+            <label className="block text-[11px] text-stone-600 font-medium mb-1">Custos de Comercialização (R$/cabeça)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formState.custoComercializacao || 0}
+              onChange={(e) => handleSimpleFieldChange("custoComercializacao", Number(e.target.value))}
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 font-mono text-center"
+              placeholder="0"
+            />
+            <span className="block text-[9px] text-stone-400 mt-1">Frete, comissões, FUNRURAL, GTA e demais taxas — somados por cabeça vendida.</span>
           </div>
         </div>
 
@@ -632,14 +746,17 @@ export default function FormBlocks({
             </div>
             <div>
               <label className="block text-[11px] text-stone-600 font-medium mb-1">Estado de Degradação *</label>
-              <input
-                type="text"
+              <select
                 required
                 value={formState.estadoMedioPastagem}
                 onChange={(e) => handleSimpleFieldChange("estadoMedioPastagem", e.target.value)}
-                className="w-full text-xs p-2 rounded-lg border border-stone-300"
-                placeholder="Ex: Moderadamente degradado"
-              />
+                className="w-full text-xs p-2 rounded-lg border border-stone-300 bg-white"
+              >
+                <option value="">Selecione...</option>
+                {estadoPastagemOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-[11px] text-stone-600 font-medium mb-1">Custo Mensal Pastagem (R$)</label>
@@ -648,6 +765,101 @@ export default function FormBlocks({
                 value={formState.custoMensalPastagem}
                 onChange={(e) => handleSimpleFieldChange("custoMensalPastagem", Number(e.target.value))}
                 className="w-full text-xs p-2 rounded-lg border border-stone-300 font-mono text-center"
+              />
+            </div>
+          </div>
+
+          {/* Manejo de pasto */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Sistema de Pastagem *</label>
+              <select
+                required
+                value={formState.sistemaPastejo}
+                onChange={(e) => handleSimpleFieldChange("sistemaPastejo", e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300 bg-white"
+              >
+                <option value="">Selecione...</option>
+                {sistemaPastejoOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Controle de entrada/saída dos animais no pasto</label>
+              <select
+                value={formState.metodoControlePastejo || ""}
+                onChange={(e) => handleSimpleFieldChange("metodoControlePastejo", e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300 bg-white"
+              >
+                <option value="">Selecione...</option>
+                {metodoControlePastejoOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Correção de solo e adubação</label>
+              <select
+                value={formState.correcaoSoloAdubacao || ""}
+                onChange={(e) => handleSimpleFieldChange("correcaoSoloAdubacao", e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300 bg-white"
+              >
+                <option value="">Selecione...</option>
+                {correcaoSoloOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Vinhaça do alambique */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Uso da vinhaça da cana (subproduto do alambique de cachaça)</label>
+              <select
+                value={formState.usoVinhaca || ""}
+                onChange={(e) => handleSimpleFieldChange("usoVinhaca", e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300 bg-white"
+              >
+                <option value="">Selecione...</option>
+                {usoVinhacaOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Custo da prática de vinhaça (R$/ha)</label>
+              <input
+                type="number"
+                value={formState.custoVinhacaHa || 0}
+                onChange={(e) => handleSimpleFieldChange("custoVinhacaHa", Number(e.target.value))}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300 font-mono text-center"
+                placeholder="0 se não utiliza"
+              />
+            </div>
+          </div>
+
+          {/* Pragas e técnicas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Pragas mais comuns na região</label>
+              <input
+                type="text"
+                value={formState.pragasComuns || ""}
+                onChange={(e) => handleSimpleFieldChange("pragasComuns", e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300"
+                placeholder="Ex: cigarrinha, formiga cortadeira… ou 'não temos problema relevante'"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-stone-600 font-medium mb-1">Técnicas de manejo de pasto adotadas</label>
+              <input
+                type="text"
+                value={formState.tecnicasManejo || ""}
+                onChange={(e) => handleSimpleFieldChange("tecnicasManejo", e.target.value)}
+                className="w-full text-xs p-2 rounded-lg border border-stone-300"
+                placeholder="Ex: vedação, pastejo rotacionado… ou 'não aplicamos técnicas específicas'"
               />
             </div>
           </div>
@@ -662,10 +874,13 @@ export default function FormBlocks({
               {[
                 { key: "silagem_milho", label: "Silagem de Milho" },
                 { key: "silagem_sorgo", label: "Silagem de Sorgo" },
+                { key: "silagem_capim", label: "Silagem de Capim" },
                 { key: "feno", label: "Feno Comercial" },
+                { key: "capim", label: "Capim (in natura/picado)" },
                 { key: "cana_picada", label: "Cana-de-açúcar Picada" },
                 { key: "bagaco_cana", label: "Bagaço de cana" },
                 { key: "palma_adensada", label: "Palma Forrageira" },
+                { key: "farelo_trigo", label: "Farelo de Trigo" },
               ].map((item) => {
                 const checked = formState.volumosos.includes(item.key);
                 return (
@@ -684,6 +899,19 @@ export default function FormBlocks({
                 );
               })}
             </div>
+
+            {formState.volumosos.includes("capim") && (
+              <div>
+                <label className="block text-[11px] text-stone-600 font-medium mb-1">Especifique o tipo de capim utilizado como volumoso</label>
+                <input
+                  type="text"
+                  value={formState.capimTipo || ""}
+                  onChange={(e) => handleSimpleFieldChange("capimTipo", e.target.value)}
+                  className="w-full text-xs p-2 rounded-lg border border-stone-300"
+                  placeholder="Ex: Capim elefante, Napier, Mombaça picado…"
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
               <div>
@@ -732,7 +960,13 @@ export default function FormBlocks({
                 { key: "algodao", label: "Caroço de Algodão" },
                 { key: "polpa_citrica", label: "Polpa Cítrica" },
                 { key: "ração_comercial", label: "Ração Ensacada Comercial" },
-                { key: "sal_mineral", label: "Sal Mineral Nobre" },
+                { key: "sal_mineral", label: "Sal Mineral" },
+                { key: "silagem", label: "Silagem" },
+                { key: "sorgo", label: "Sorgo" },
+                { key: "feno", label: "Feno" },
+                { key: "palma", label: "Palma" },
+                { key: "bagaco_cana", label: "Bagaço de Cana" },
+                { key: "cama_frango", label: "Cama de Frango *" },
               ].map((item) => {
                 const checked = formState.suplementos.includes(item.key);
                 return (
@@ -751,6 +985,10 @@ export default function FormBlocks({
                 );
               })}
             </div>
+
+            <p className="text-[9px] text-stone-400 leading-snug">
+              * Cama de frango: o fornecimento a ruminantes é <span className="text-stone-500">proibido em todo o território nacional</span> pela Instrução Normativa nº 08/2004 do Ministério da Agricultura e Pecuária (MAPA). Marque apenas se for o caso atual da propriedade — será sinalizado no diagnóstico.
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
               <div>
@@ -895,8 +1133,8 @@ export default function FormBlocks({
             <Wrench className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 07: Infraestrutura Existente da Fábrica</h3>
-            <span className="text-[10px] text-stone-500 font-mono">Maquinários de pecuária ativos na propriedade</span>
+            <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 07: Infraestrutura Existente — Equipamentos e Instalações</h3>
+            <span className="text-[10px] text-stone-500 font-mono">Mapeamento dos equipamentos existentes e que podem ser usados na produção própria de ração, reduzindo o CAPEX necessário para implementar a operação.</span>
           </div>
         </div>
 
@@ -987,7 +1225,7 @@ export default function FormBlocks({
             </select>
           </div>
           <div>
-            <label className="block text-[11px] text-stone-600 font-medium mb-1">Distância da Fábrica até o Curral (m)</label>
+            <label className="block text-[11px] text-stone-600 font-medium mb-1">Distância do local previsto p/ produção de ração até o curral (m)</label>
             <input
               type="number"
               value={formState.distanciaCurral}
@@ -1061,6 +1299,115 @@ export default function FormBlocks({
               className="w-full text-xs p-2.5 rounded-lg border border-stone-300"
               placeholder="Ex: 12-18 meses"
             />
+          </div>
+        </div>
+
+        {/* Vocação e papel estratégico */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div>
+            <label className="block text-[11px] text-stone-600 font-medium mb-1">Qual a vocação principal da propriedade? *</label>
+            <select
+              required
+              value={formState.vocacaoPropriedade || ""}
+              onChange={(e) => handleSimpleFieldChange("vocacaoPropriedade", e.target.value)}
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 bg-white"
+            >
+              <option value="">Selecione...</option>
+              {vocacaoOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] text-stone-600 font-medium mb-1">Papel de uma eventual fábrica de ração *</label>
+            <select
+              required
+              value={formState.papelFabricaRacao || ""}
+              onChange={(e) => handleSimpleFieldChange("papelFabricaRacao", e.target.value)}
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 bg-white"
+            >
+              <option value="">Selecione...</option>
+              {papelFabricaOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[11px] text-stone-600 font-medium mb-1">Pretende implantar confinamento futuro?</label>
+            <select
+              value={formState.confinamentoFuturo}
+              onChange={(e) => handleSimpleFieldChange("confinamentoFuturo", e.target.value)}
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 bg-white"
+            >
+              <option value="a_avaliar">Ainda a avaliar</option>
+              <option value="sim_total">Sim — confinamento total</option>
+              <option value="sim_semi">Sim — semi-confinamento</option>
+              <option value="nao">Não — manter a pasto</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] text-stone-600 font-medium mb-1">Categoria prioritária para a produção de ração</label>
+            <select
+              value={formState.categoriaPrioritaria}
+              onChange={(e) => handleSimpleFieldChange("categoriaPrioritaria", e.target.value)}
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 bg-white"
+            >
+              {categoriaPrioritariaOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Visão estratégica por perspectiva */}
+        <div className="bg-stone-50/60 p-4 rounded-xl border border-stone-100 space-y-3">
+          <span className="text-[11px] font-semibold text-stone-700 font-mono block">
+            Visão estratégica por perspectiva (opcional — ajuda a entender a vocação real da propriedade)
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] text-stone-500 font-mono mb-1">Visão do proprietário</label>
+              <textarea
+                rows={2}
+                value={formState.visaoProprietario || ""}
+                onChange={(e) => handleSimpleFieldChange("visaoProprietario", e.target.value)}
+                className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
+                placeholder="O que o dono espera do negócio?"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-stone-500 font-mono mb-1">Visão do gerente / manejo</label>
+              <textarea
+                rows={2}
+                value={formState.visaoGerente || ""}
+                onChange={(e) => handleSimpleFieldChange("visaoGerente", e.target.value)}
+                className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
+                placeholder="O que facilitaria a gestão técnica?"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-stone-500 font-mono mb-1">Visão da operação (vaqueiro)</label>
+              <textarea
+                rows={2}
+                value={formState.visaoOperacional || ""}
+                onChange={(e) => handleSimpleFieldChange("visaoOperacional", e.target.value)}
+                className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
+                placeholder="O que pesa na lida do dia a dia?"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-stone-500 font-mono mb-1">Visão administrativa / financeira</label>
+              <textarea
+                rows={2}
+                value={formState.visaoAdministrativa || ""}
+                onChange={(e) => handleSimpleFieldChange("visaoAdministrativa", e.target.value)}
+                className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
+                placeholder="O que organizaria compras e fluxo de caixa?"
+              />
+            </div>
           </div>
         </div>
 
