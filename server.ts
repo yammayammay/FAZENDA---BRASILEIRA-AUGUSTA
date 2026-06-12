@@ -204,7 +204,17 @@ function calculateMetrics(formState: FormState) {
     }
   });
 
-  // Process extra category if supplied
+  // Process extra categories (dynamic custom rows) if supplied
+  (formState.extraCategories || []).forEach((cat) => {
+    if (cat && Number(cat.heads) > 0) {
+      totalHeads += Number(cat.heads);
+      const biomass = Number(cat.heads) * Number(cat.weight);
+      totalBiomass += biomass;
+      const ms = Number(cat.heads) * Number(cat.weight) * (Number(cat.imsCoef) / 100);
+      totalMsDia += ms;
+    }
+  });
+  // Backward compatibility: legacy single extra category
   if (formState.extraCatName && formState.extraCatHeads > 0) {
     totalHeads += Number(formState.extraCatHeads);
     const biomass = Number(formState.extraCatHeads) * Number(formState.extraCatWeight);
@@ -279,8 +289,6 @@ DADOS DE IDENTIFICAÇÃO:
 - Produtor: ${formState.nomeProdutor}
 - Cargo: ${formState.cargo}
 - Residente de: ${formState.cidade || "Nísia Floresta, RN"}
-- Observações prévias: ${formState.obsPrevia}
-- Rotina na prática: ${formState.rotinaPratica}
 
 REBANHO E MÉTRICAS CALCULADAS:
 - Total de Animais: ${keyMetrics.totalHeads} cabeças
@@ -292,12 +300,18 @@ REBANHO E MÉTRICAS CALCULADAS:
 DESEMPENHO ESPERADO:
 - GMDs Médios: Bezerros (${formState.bezerroDesmGmd} kg/dia), Bois (${formState.boiGmd} kg/dia), Garrotes (${formState.garroteGmd} kg/dia), Novilhas (${formState.novilhaGmd} kg/dia), Vacas (${formState.vacaGmd} kg/dia).
 - Preços praticados da arroba (@): R$ ${formState.precoArroba}
+- Raça(s) predominante(s): ${(formState.racas && formState.racas.length ? formState.racas.join(", ") : formState.racaPredominante) || "Não informado"}
+- Destino principal da venda: ${formState.destinoPrincipal}${formState.destinoPrincipal === "Outro" && formState.destinoPrincipalOutro ? " (" + formState.destinoPrincipalOutro + ")" : ""}
+- Custo de comercialização (frete, comissões, taxas): R$ ${formState.custoComercializacao || 0}/cabeça
 - Meta de Receita Bruta Anual: R$ ${formState.metaReceitaAnual}
 - Rotina de acompanhamento comercial: ${formState.rotinaComercial}
 
 FONTES ALIMENTARES ATUAIS:
 - Espécie de Pasto: ${formState.especiePredominantePastagem} (${formState.areaTotalPastagem} ha, estado: ${formState.estadoMedioPastagem})
-- Volumosos complementares: ${formState.volumosos.join(", ") || "Nenhum"}
+- Sistema de pastagem: ${formState.sistemaPastejo || "Não informado"} | Controle de entrada/saída: ${formState.metodoControlePastejo || "Não informado"}
+- Correção de solo/adubação: ${formState.correcaoSoloAdubacao || "Não informado"} | Vinhaça: ${formState.usoVinhaca || "Não informado"}${formState.custoVinhacaHa ? " (R$ " + formState.custoVinhacaHa + "/ha)" : ""}
+- Pragas comuns na região: ${formState.pragasComuns || "Não informado"} | Técnicas de manejo: ${formState.tecnicasManejo || "Não informado"}
+- Volumosos complementares: ${formState.volumosos.join(", ") || "Nenhum"}${formState.capimTipo ? " | Capim: " + formState.capimTipo : ""}
 - Suplementação concentrada: ${formState.suplementos.join(", ") || "Nenhuma"}
 - Logística de compra e distância do fornecedor: ${formState.distanciaFornecedor} km de distância, fornecimento ${formState.frequenciaFornecimento}
 
@@ -313,13 +327,23 @@ INFRAESTRUTURA EXISTENTE:
 - Rede de energia trifásica: ${formState.energiaTrifasica}
 - Distância ideal de infraestrutura até o curral de manejo: ${formState.distanciaCurral} metros
 
-PERSPECTIVAS DE EXPANSÃO:
+PERSPECTIVAS DE EXPANSÃO E VISÃO ESTRATÉGICA:
+- Vocação principal da propriedade: ${formState.vocacaoPropriedade || "Não informado"}
+- Papel pretendido de uma eventual fábrica de ração: ${formState.papelFabricaRacao || "Não informado"}
+- Categoria prioritária para a produção própria: ${formState.categoriaPrioritaria || "Não informado"}
+- Visão do proprietário: ${formState.visaoProprietario || "Não informado"}
+- Visão do gerente: ${formState.visaoGerente || "Não informado"}
+- Visão da operação (vaqueiro): ${formState.visaoOperacional || "Não informado"}
+- Visão administrativa/financeira: ${formState.visaoAdministrativa || "Não informado"}
 - Rebanho planejado para 24 meses: ${formState.metaSurgimento24} cabeças
 - Rebanho planejado para 36 meses: ${formState.metaSurgimento36} cabeças
-- Planeja confinamento futuro: ${formState.confinamentoFuturo === "sim_total" ? "Sim, Confinamento Total" : formState.confinamentoFuturo === "sim_semi" ? "Sim, Semi-confinamento" : "Não planeja"}
+- Planeja confinamento futuro: ${formState.confinamentoFuturo === "sim_total" ? "Sim, Confinamento Total" : formState.confinamentoFuturo === "sim_semi" ? "Sim, Semi-confinamento" : formState.confinamentoFuturo === "nao" ? "Não planeja" : "A avaliar"}
 - CAPEX Pretendido para a Fábrica: R$ ${formState.capexOrcamento}
 - Payback projetado como meta: ${formState.paybackMeta}
 - Gargalos / Restrições do processo operacional: ${formState.restricaoProcesso}
+- Contexto real da operação (relato livre): ${formState.contextoReal || "Não informado"}
+
+IMPORTANTE: A propriedade AINDA NÃO POSSUI fábrica de ração. O objetivo deste diagnóstico é avaliar tecnicamente se a implantação de uma produção própria de ração é indicada ou não, com base nos dados acima. Trate a fábrica como hipótese a ser avaliada, não como algo já existente.
 
 INSTRUÇÕES DE ESCRITA (ESCREVA EM PORTUGUÊS):
 Seja extremamente específico e focado em engenharia de pecuária real e agroindústria de fábrica de ração.
