@@ -15,7 +15,7 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react";
-import { Submission } from "../types.js";
+import { Submission, MonthlyReport } from "../types.js";
 import { categoryLabels } from "../data.js";
 import {
   BarChart,
@@ -36,6 +36,8 @@ interface StrategicDashboardProps {
   onSelectSubmission: (sub: Submission) => void;
   selectedSubmission: Submission | null;
   downloadPDF: (sub: Submission) => void;
+  lastMonthly: MonthlyReport | null;
+  downloadMonthlyPDF: (r: MonthlyReport) => void;
 }
 
 const COLORS = [
@@ -47,15 +49,78 @@ export default function StrategicDashboard({
   submissions,
   onSelectSubmission,
   selectedSubmission,
-  downloadPDF
+  downloadPDF,
+  lastMonthly,
+  downloadMonthlyPDF
 }: StrategicDashboardProps) {
   const currentSub = selectedSubmission || submissions[0];
   const [activeTab, setActiveTab] = useState<"visuals" | "emails">("visuals");
+  const [viewMode, setViewMode] = useState<"diagnostico" | "mensal">("diagnostico");
+
+  const modeToggle = (
+    <div className="flex bg-stone-100 border border-stone-200 p-1 rounded-lg w-full md:w-auto mb-2">
+      <button
+        onClick={() => setViewMode("diagnostico")}
+        className={`flex-1 md:flex-none px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${viewMode === "diagnostico" ? "bg-primary text-white shadow" : "text-stone-600 hover:bg-white"}`}
+      >
+        Diagnóstico Inicial
+      </button>
+      <button
+        onClick={() => setViewMode("mensal")}
+        className={`flex-1 md:flex-none px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wide transition-all ${viewMode === "mensal" ? "bg-primary text-white shadow" : "text-stone-600 hover:bg-white"}`}
+      >
+        Acompanhamento Mensal
+      </button>
+    </div>
+  );
+
+  if (viewMode === "mensal") {
+    const r = lastMonthly;
+    return (
+      <div className="space-y-4">
+        {modeToggle}
+        {!r ? (
+          <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 text-center text-sm text-stone-500">
+            Nenhum acompanhamento mensal gerado nesta sessão. Preencha a aba "Acompanhamento Mensal" e clique em <strong>Gerar Relatório</strong> — o resumo do último mês aparecerá aqui.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-5 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="font-display font-bold text-stone-900 text-base">Resumo do Último Acompanhamento Mensal</h3>
+                  <span className="text-[11px] text-stone-500 font-mono">Referência: {r.formState.mesReferencia || "—"} • Responsável: {r.formState.responsavelNome || "—"}</span>
+                </div>
+                <button onClick={() => downloadMonthlyPDF(r)} className="flex items-center gap-1.5 bg-primary text-white text-xs font-bold px-3 py-2 rounded-sm hover:bg-primary/90">
+                  <Printer className="w-3.5 h-3.5" /> Baixar PDF
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                <div className="bg-stone-50 rounded p-3"><span className="text-[9px] text-stone-500 font-mono block">PLANTEL (FIM)</span><div className="text-xl font-bold text-primary">{r.metrics.plantelFim}</div></div>
+                <div className="bg-stone-50 rounded p-3"><span className="text-[9px] text-stone-500 font-mono block">GMD MÉDIO</span><div className="text-xl font-bold text-primary">{r.metrics.gmdMedioPonderado} <span className="text-xs">kg/d</span></div></div>
+                <div className="bg-stone-50 rounded p-3"><span className="text-[9px] text-stone-500 font-mono block">CUSTO TOTAL</span><div className="text-lg font-bold text-primary">R$ {r.metrics.custoTotal.toLocaleString("pt-BR")}</div></div>
+                <div className="bg-stone-50 rounded p-3"><span className="text-[9px] text-stone-500 font-mono block">RESULTADO DO MÊS</span><div className={`text-lg font-bold ${r.metrics.resultadoMes >= 0 ? "text-primary" : "text-red-600"}`}>R$ {r.metrics.resultadoMes.toLocaleString("pt-BR")}</div></div>
+              </div>
+            </div>
+            <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-5 shadow-sm">
+              <h4 className="text-xs font-mono font-semibold text-primary mb-2">RELATÓRIO COMPLETO (espelho + diagnóstico + referencial)</h4>
+              <div className="whitespace-pre-line font-serif leading-relaxed text-xs bg-warm-quote/45 p-4 rounded-sm border border-warm-border max-h-[420px] overflow-y-auto">
+                {r.diagnostic}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (!currentSub) {
     return (
-      <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 text-center text-sm text-stone-500">
-        Nenhum dado cadastrado para dimensionamento estratégico.
+      <div className="space-y-4">
+        {modeToggle}
+        <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 text-center text-sm text-stone-500">
+          Nenhum diagnóstico inicial cadastrado nesta sessão. Preencha a aba "Diagnóstico Inicial" e envie o questionário.
+        </div>
       </div>
     );
   }
@@ -86,6 +151,7 @@ export default function StrategicDashboard({
 
   return (
     <div className="space-y-6">
+      {modeToggle}
       {/* Executive Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-primary text-white rounded-sm p-4 shadow-md border-b-4 border-accent">
