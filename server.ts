@@ -3,7 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { createServer as createViteServer } from "vite";
-import { FormState, Submission } from "./src/types.js";
+import { FormState, Submission, MonthlyFormState, MonthlyReport } from "./src/types.js";
 
 // Load environment variables
 dotenv.config();
@@ -13,154 +13,10 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
-// In-memory persistent database seeded with a beautiful high quality submission
-const submissions: Submission[] = [
-  {
-    id: "sub-seed-1",
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
-    formState: {
-      nomeProdutor: "Rodrigo Silva de Alencar",
-      contatoZap: "(84) 99876-5432",
-      email: "rodrigo.alencar@agrobrazil.com.br",
-      cargo: "Gerente de Pecuária",
-      cidade: "Nísia Floresta - RN",
-      obsPrevia: "Estamos iniciando o planejamento para transição de confinamento convencional para semi-confinamento e verticalização total da fábrica de ração.",
-      rotinaPratica: "Atualmente, a mistura é feita de forma manual na beira do cocho pelos peões usando uma betoneira antiga.",
-      herd: {
-        bezerroLactente: { heads: 45, weight: 80, imsCoef: 1.5 },
-        bezerroDesmamado: { heads: 50, weight: 160, imsCoef: 2.2 },
-        novilha: { heads: 60, weight: 280, imsCoef: 2.0 },
-        vacaSolteira: { heads: 30, weight: 450, imsCoef: 2.0 },
-        vacaParida: { heads: 80, weight: 480, imsCoef: 2.8 },
-        vacaGestanteSeca: { heads: 40, weight: 520, imsCoef: 1.8 },
-        garroteRecria: { heads: 70, weight: 320, imsCoef: 2.0 },
-        boiTerminacao: { heads: 120, weight: 430, imsCoef: 2.2 },
-        touro: { heads: 4, weight: 750, imsCoef: 1.8 },
-      },
-      extraCatName: "",
-      extraCatHeads: 0,
-      extraCatWeight: 0,
-      extraCatImsCoef: 2.0,
-      rotinaControle: "Controle feito em caderno de campo e repassado mensalmente para uma planilha Excel.",
-      bezerroDesmGmd: 0.65,
-      novilhaGmd: 0.55,
-      garroteGmd: 0.70,
-      boiGmd: 1.15,
-      vacaGmd: 0.20,
-      gmdMedido: "estimativa",
-      pesoEntrada: 310,
-      pesoAlvo: 540,
-      rendimentoCarcaça: 53.5,
-      tempoAprov: 110,
-      racaPredominante: "Nelore e Cruzamento Industrial (Aberdeen Angus)",
-      animaisVendidosAnual: 140,
-      rotinaDesempenho: "Pesamos os bois somente no dia da entrada no confinamento e no embarque para o frigorífico local.",
-      precoArroba: 285.0,
-      destinoPrincipal: "Frigorífico Potiguar Alimentos",
-      contrato: "Nenhum (Venda no spot)",
-      descontoMedio: 1.5,
-      freteMedio: 12.0,
-      outrosCustos: 4.5,
-      sazonalidade: ["Ago", "Set", "Out", "Nov", "Dez"],
-      metaReceitaAnual: 450000,
-      rotinaComercial: "Venda direta por telefone com corretores locais da região da Grande Natal.",
-      areaTotalPastagem: 180,
-      especiePredominantePastagem: "Brachiaria decumbens e Capim Panicum maximum (Mombaça)",
-      estadoMedioPastagem: "Degradação moderada com manchas de areia típicas de Nísia Floresta",
-      producaoEstimadaPastagem: "Baixa produção no período de estiagem (Setembro a Janeiro)",
-      sistemaPastejo: "Rotacionado com poucos piquetes",
-      numPiquetes: 8,
-      adubacaoPastagem: false,
-      custoMensalPastagem: 4500,
-      volumosos: ["silagem_milho", "cana_picada"],
-      volumeMesVolumoso: 120,
-      custoVolumoso: 18000,
-      dispBagacoVinhaca: "Sim, há usinas de cana-de-açúcar a 32km de distância facilitando bagaço úmido",
-      vinhacaUtilizada: "Não é utilizada atualmente",
-      suplementos: ["sal_proteico", "milho_moido", "soja"],
-      volumeSuplMes: 18,
-      custoSuplemento: 38000,
-      fornecedorSuplemento: "Nutrisul Alimentos e cooperativas de grãos do RN",
-      distanciaFornecedor: 45,
-      frequenciaFornecimento: "Quinzenal",
-      rotinaAlimentacao: "O volumoso e a suplementação concentrada são colocados manualmente duas vezes ao dia nos cochos de madeira.",
-      custoNaoAlimentacao: 5200,
-      maoDeObraDireta: 9600,
-      sanidade: 3200,
-      manutencaoEquip: 1800,
-      custoExtra: 2500,
-      descCustoExtra: "Energia elétrica da bomba de água e combustível do trator antigo",
-      rotinaCustos: "Calculado de forma semestral pelo escritório contábil.",
-      equipments: {
-        balancaTronco: { possui: true, status: "Mapeado", capacidade: "1500 kg Coimma", obs: "Necessita calibração de células de carga" },
-        forrageira: { possui: true, status: "Excelente", capacidade: "Nogueira DPM-4", obs: "Acionada por motor elétrico de 7.5 CV" },
-        misturador: { possui: false, status: "Inexistente", capacidade: "Nenhuma", obs: "Estamos buscando indicação de misturador vertical ou horizontal" },
-        moinho: { possui: true, status: "Mapeado", capacidade: "800 kg/h", obs: "Martelos desgastados" },
-        trator: { possui: true, status: "Mapeado", capacidade: "Massey Ferguson 265 antigo", obs: "Vazamento hidráulico leve" },
-        deposito: { possui: true, status: "Excelente", capacidade: "Galpão alvenaria 120m²", obs: "Coberto com telhas de cerâmica, boa ventilação" },
-        balancaPesagem: { possui: false, status: "Inexistente", capacidade: "Nenhuma", obs: "Pesagem de sacos feita de forma visual ou amostragem lenta" },
-        bombaTransferencia: { possui: false, status: "Inexistente", capacidade: "Nenhuma", obs: "Abastecimento e circulação de calda de ureia/mistura artesanal" },
-      },
-      terrenoDisponivel: "Sim - Há uma área plana de 450m² ao lado do galpão de insumos",
-      energiaTrifasica: "Sim",
-      distanciaCurral: 60,
-      rotinaInfra: "Manutenção puramente corretiva, quando quebra o trator ou a forrageira para tudo até consertar.",
-      metaSurgimento24: 600,
-      metaSurgimento36: 800,
-      confinamentoFuturo: "sim_total",
-      categoriaPrioritaria: "Animais em terminação",
-      capexOrcamento: 130000,
-      paybackMeta: "18 a 24 meses",
-      restricaoProcesso: "Mão de obra com resistência ao uso de tecnologia, dificuldades em gerenciar dosagem exata de ureia e sal mineral.",
-      expectativasGerais: "Queremos parar de comprar ração comercial pronta ensacada que é cara, e produzir 100% da ração concentrada dentro da fazenda com milho moído e núcleo proteico, reduzindo o custo por arroba produzida.",
-    },
-    keyMetrics: {
-      totalHeads: 499,
-      totalBiomass: 153050,
-      totalMsDia: 3224.7,
-      totalMsMes: 96741.0,
-      totalMonthlyFeedCost: 60500,
-      costPerAnimalMonth: 121.24,
-      suggestedMixerCapacityKg: 500,
-      suggestedSiloVolumeM3: 150,
-    },
-    diagnostic: `**DIAGNÓSTICO E PRE-DIMENSIONAMENTO ESTRATÉGICO DA FAZENDA BRASILEIRA AUGUSTA**
-
-1. **Análise do Plantel e Biomassa**:
-O rebanho atual de **499 cabeças** representa uma biomassa acumulada de **153.050 kg de peso vivo**. A demanda de matéria seca calculada é de **3.224,7 kg MS/dia (~96.741 kg MS/mês)**. Isso demonstra uma operação de médio porte que já atinge limites críticos para misturas de ração puramente manuais.
-
-2. **Gargalo Crítico de Infraestrutura (Misturador)**:
-A ausência de um misturador mecânico de ração é o maior ponto de ineficiência identificado. A mistura manual com betoneira ou no cocho impede a homogeneidade da ração, gerando "fundo de cocho" (onde animais dominantes comem o concentrado mais fino e se intoxicam com ureia, enquanto animais mais fracos consomem apenas palha). *Recomendação:* Instalação iminente de um misturador vertical de 500 kg ou horizontal de helicoide contínuo de 1.000 kg se houver alto teor de umidade (como inserção de bagaço de cana ou melaço líquido).
-
-3. **Logística de Armazenagem e Maresia em Nísia Floresta/RN**:
-Nísia Floresta possui alta umidade costeira e salinidade oriunda da maresia potiguar. Equipamentos de moagem (moinho acionado) e misturador devem ter pintura epóxi anti-corrosiva de fundo ou preferencialmente chapas de aço inox 304 nas partes de atrito de grãos. O moinho atual possui baixa eficiência histórica devido a martelos desgastados. A substituição ou virada de martelos economizará até 15% do consumo de energia elétrica trifásica.
-
-4. **Formulação do Concentrado Próprio**:
-A meta de eliminar 100% da compra de ração ensacada comercial é viável e gerará uma economia estimada de R$ 0,40 a R$ 0,65 por kg de concentrado produzido. Com a estrutura plana trifásica disponível ao lado do galpão, a instalação de um layout em linha (Moega -> Moinho -> Elevador de Caneca -> Silo Pulmão -> Balança de Fluxo -> Misturador) reduz a mão de obra diária de 3 operadores para apenas 1 operador por lote.
-
-5. **Viabilidade Econômica (CAPEX de R$ 130.000)**:
-Com o orçamento disponível de R$ 130.000, é perfeitamente viável comprar:
-- 1 Misturador Vertical de 500 kg a 1.000 kg (Aço inox ou especial): \`R$ 22.000 - R$ 30.000\`
-- 1 Conjunto de Silo metálico galvanizado de 15 toneladas para grãos: \`R$ 35.000 - R$ 42.000\`
-- Reformar/Instalar Moinho adequado de 1500 kg/h acoplado: \`R$ 15.000\`
-- Balança ensacadora digital e transportador mecânico helicoidal (chupim): \`R$ 18.000\`
-Total estimado de CAPEX de R$ 95.000 a R$ 105.000, restando R$ 25.000 para capital de giro de insumos estruturais (milho em grão contratado direto de região produtora). O payback calculado com economia de concentrado é de aproximados **14 meses**, superando a meta de 18-24 meses do produtor!`,
-    emailsSent: [
-      {
-        to: "rodrigo.alencar@agrobrazil.com.br",
-        subject: "FBA Planilha de Diagnóstico - Rodrigo Silva de Alencar",
-        body: "Prezado Rodrigo Alencar,\nAgradecemos por preencher o Questionário de Dimensionamento da Fazenda Brasileira Augusta.\nSeu rebanho de 499 cabeças e demanda mensal de 96.741 kg de matéria seca foram analisados com sucesso.\nAnexamos o PDF contendo as estimativas de dimensionamento da fábrica de ração e o payback do CAPEX projetado de R$ 130.000.\nAtenciosamente,\nInteligência Estratégica Fazenda Brasileira Augusta",
-        date: new Date(Date.now() - 3600000 * 2).toISOString(),
-      },
-      {
-        to: "proprietario@fazendabrasileiraaugusta.com",
-        subject: "Novo diagnóstico preenchido: Rodrigo Silva de Alencar (499 cab.)",
-        body: "Alerta de Novo Diagnóstico cadastrado para a Fazenda Brasileira Augusta:\nProdutor: Rodrigo Silva de Alencar\nCargo: Gerente de Pecuária\nPlantel: 499 cabeças\nBiomassa Total: 153.050 kg PV\nDemanda de concentrado projetada: ~96.741 kg MS/Mês\nCAPEX Pretendido: R$ 130.000\nO relatório completo e plano de ação em PDF foram armazenados e enviados para o produtor.\nAcesse o painel executivo para ver os gráficos de dimensionamento.",
-        date: new Date(Date.now() - 3600000 * 2).toISOString(),
-      }
-    ],
-  },
-];
+// In-memory store (NÃO persistente — reinicia a cada restart do servidor).
+// O registro permanente são os arquivos PDF/.md baixados pelo usuário.
+const submissions: Submission[] = [];
+let lastMonthlyReport: MonthlyReport | null = null;
 
 // Helper to initialize custom server-side Gemini client safely (failsafe fallback if API key missing)
 function getGeminiClient(): GoogleGenAI | null {
@@ -842,6 +698,247 @@ app.post("/api/generate-image", async (req, res) => {
     console.error("Error generating AI image blueprint:", error);
     res.status(500).json({ error: error.message || "Erro de timeout ou autorização na geração de imagens com Gemini-3.1-flash-image." });
   }
+});
+
+// ===================== ACOMPANHAMENTO MENSAL =====================
+
+const MONTHLY_LABELS: Record<string, string> = {
+  aleitamento: "Bezerros(as) em Aleitamento (cria)",
+  desmamados: "Bezerros(as) Desmamados(as)",
+  recria: "Recria (Garrotes/Garrotas)",
+  engordaTerminacao: "Engorda / Terminação",
+  vacasCria: "Vacas de Cria (Matrizes)",
+  reprodutores: "Reprodutores (Touros)",
+  resguardoEnfermaria: "Resguardo / Enfermaria",
+};
+
+function computeMonthlyMetrics(m: MonthlyFormState) {
+  const DIAS = 30;
+  const cats = m.categorias || {};
+  let plantelInicio = 0, plantelFim = 0, nascimentos = 0, mortes = 0, comprasTotal = 0, vendasTotal = 0;
+  let gmdNum = 0, gmdDen = 0, msMesKg = 0;
+  for (const k of Object.keys(cats)) {
+    const c = cats[k];
+    const fim = c.inicio + c.nascimentos - c.mortes + c.compras - c.vendas + c.transferencias;
+    plantelInicio += c.inicio;
+    plantelFim += fim;
+    nascimentos += c.nascimentos;
+    mortes += c.mortes;
+    comprasTotal += c.compras;
+    vendasTotal += c.vendas;
+    if (c.pesoMedioAtual > 0 && c.pesoMedioAnterior > 0) {
+      const gmd = (c.pesoMedioAtual - c.pesoMedioAnterior) / DIAS;
+      const w = Math.max(fim, 0);
+      gmdNum += gmd * w;
+      gmdDen += w;
+    }
+    if (fim > 0 && c.pesoMedioAtual > 0) msMesKg += fim * c.pesoMedioAtual * 0.023 * DIAS;
+  }
+  const gmdMedioPonderado = gmdDen > 0 ? gmdNum / gmdDen : 0;
+  const taxaMortalidadePct = plantelInicio > 0 ? (mortes / plantelInicio) * 100 : 0;
+  const consumoSuplementoTonMes = m.suplementoQtdTonMes || 0;
+  const consumoVolumosoTonMes = m.volumosoQtdTonMes || 0;
+  const msMesTon = msMesKg / 1000;
+  const consumoPastoEstimadoTonMes = Math.max(0, msMesTon - consumoVolumosoTonMes * 0.30 - consumoSuplementoTonMes * 0.88);
+  const custoOperacionalFixo = (m.custoMaoDeObra || 0) + (m.custoSanidade || 0) + (m.custoInsumos || 0) + (m.custoOutros || 0);
+  const custoTotal = custoOperacionalFixo + (m.volumosoCustoMes || 0) + (m.suplementoCustoMes || 0) + (m.vendasCustoComercializacao || 0) + (m.comprasValorTotal || 0);
+  const receitaVendas = m.vendasValorTotal || 0;
+  const custoAquisicao = m.comprasValorTotal || 0;
+  const resultadoMes = receitaVendas - (custoOperacionalFixo + (m.volumosoCustoMes || 0) + (m.suplementoCustoMes || 0) + (m.vendasCustoComercializacao || 0));
+  return {
+    plantelInicio,
+    plantelFim,
+    nascimentos,
+    mortes,
+    taxaMortalidadePct: parseFloat(taxaMortalidadePct.toFixed(2)),
+    comprasTotal,
+    vendasTotal,
+    gmdMedioPonderado: parseFloat(gmdMedioPonderado.toFixed(3)),
+    consumoSuplementoTonMes: parseFloat(consumoSuplementoTonMes.toFixed(2)),
+    consumoVolumosoTonMes: parseFloat(consumoVolumosoTonMes.toFixed(2)),
+    consumoPastoEstimadoTonMes: parseFloat(consumoPastoEstimadoTonMes.toFixed(2)),
+    custoOperacionalFixo: Math.round(custoOperacionalFixo),
+    custoTotal: Math.round(custoTotal),
+    receitaVendas: Math.round(receitaVendas),
+    custoAquisicao: Math.round(custoAquisicao),
+    resultadoMes: Math.round(resultadoMes),
+  };
+}
+
+// ESPELHO mensal — reprodução fiel e determinística (sem IA)
+function buildMonthlyMirror(m: MonthlyFormState, mx: any): string {
+  const L: string[] = [];
+  const line = (label: string, val: any) => L.push(`   • ${label}: ${(val === undefined || val === null || val === "") ? "—" : val}`);
+  L.push("================ ESPELHO DO ACOMPANHAMENTO MENSAL (cópia fiel das respostas) ================\n");
+  L.push("1) IDENTIFICAÇÃO");
+  line("Mês de referência", m.mesReferencia);
+  line("Data de preenchimento", m.dataPreenchimento);
+  line("Responsável", `${m.responsavelNome || "—"}${m.responsavelCargo ? " (" + m.responsavelCargo + ")" : ""}`);
+
+  L.push("\n2) DINÂMICA DO PLANTEL (por categoria)");
+  Object.keys(MONTHLY_LABELS).forEach((k) => {
+    const c = (m.categorias || {})[k];
+    if (!c) return;
+    const fim = c.inicio + c.nascimentos - c.mortes + c.compras - c.vendas + c.transferencias;
+    line(MONTHLY_LABELS[k], `Início ${c.inicio} | Nasc ${c.nascimentos} | Mortes ${c.mortes} | Compras ${c.compras} | Vendas ${c.vendas} | Transf ${c.transferencias} | Fim ${fim} | PV ${c.pesoMedioAnterior}→${c.pesoMedioAtual} kg`);
+  });
+  line("TOTAL plantel", `Início ${mx.plantelInicio} → Fim ${mx.plantelFim} | Nascimentos ${mx.nascimentos} | Mortes ${mx.mortes} (mortalidade ${mx.taxaMortalidadePct}%)`);
+
+  L.push("\n3) SANIDADE");
+  line("Doenças ocorridas", m.doencasOcorridas);
+  line("Nº de animais doentes", m.numAnimaisDoentes);
+  line("Acidentes", m.acidentes);
+  line("Mortes e causas", m.mortesCausas);
+  line("Vacinações/vermifugações", m.vacinacoesVermifugacoes);
+  line("Prevenção sazonal", m.prevencaoSazonal);
+
+  L.push("\n4) PASTO E CLIMA");
+  line("Condição do pasto", m.condicaoPasto);
+  line("Altura média do pasto (cm)", m.alturaPastoCm);
+  line("Método de manejo de pasto", m.metodoManejoPasto);
+  line("Controle de entrada/saída", m.controleEntradaSaida);
+  line("Piquetes em uso / descanso", `${m.piquetesUso} / ${m.piquetesDescanso}`);
+  line("Pluviometria do mês (mm)", m.pluviometriaMm);
+  line("Pragas/invasoras", m.pragasInvasoras);
+  line("Correção/adubação", m.correcaoAdubacao);
+
+  L.push("\n5) DIETA E SUPLEMENTAÇÃO");
+  line("Volumoso (tipo)", m.volumosoTipo);
+  line("Volumoso (ton/mês | R$/mês)", `${m.volumosoQtdTonMes} ton | R$ ${m.volumosoCustoMes}`);
+  line("Suplemento/ração (tipo)", m.suplementoTipo);
+  line("Suplemento/ração (ton/mês | R$/mês)", `${m.suplementoQtdTonMes} ton | R$ ${m.suplementoCustoMes}`);
+  line("Mudanças na dieta", m.mudancasDieta);
+
+  L.push("\n6) COMERCIAL E CUSTOS");
+  line("Compras", `${m.comprasNum} cab. | PV médio ${m.comprasPesoMedio} kg | R$ ${m.comprasValorTotal}`);
+  line("Vendas", `${m.vendasNum} cab. | ${m.vendasArrobasTotal} @ | R$ ${m.vendasValorTotal} | custo comerc. R$ ${m.vendasCustoComercializacao}`);
+  line("Custos do mês", `Mão de obra R$ ${m.custoMaoDeObra} | Sanidade R$ ${m.custoSanidade} | Insumos R$ ${m.custoInsumos} | Outros R$ ${m.custoOutros}`);
+
+  L.push("\n7) OBSERVAÇÕES E GARGALOS");
+  line("Relato do responsável", m.observacoesGargalos);
+
+  L.push("\n================ INDICADORES APURADOS (cálculo automático) ================");
+  line("GMD médio ponderado do plantel", `${mx.gmdMedioPonderado} kg/dia`);
+  line("Consumo de suplemento/ração", `${mx.consumoSuplementoTonMes} ton/mês`);
+  line("Consumo de volumoso", `${mx.consumoVolumosoTonMes} ton/mês`);
+  line("Consumo de pasto (estimado, MS)", `${mx.consumoPastoEstimadoTonMes} ton/mês`);
+  line("Custo operacional fixo", `R$ ${mx.custoOperacionalFixo.toLocaleString("pt-BR")}`);
+  line("Custo total do mês", `R$ ${mx.custoTotal.toLocaleString("pt-BR")}`);
+  line("Receita de vendas", `R$ ${mx.receitaVendas.toLocaleString("pt-BR")}`);
+  line("Custo de aquisição", `R$ ${mx.custoAquisicao.toLocaleString("pt-BR")}`);
+  line("Resultado operacional do mês", `R$ ${mx.resultadoMes.toLocaleString("pt-BR")}`);
+  return L.join("\n");
+}
+
+// REFERENCIAL TÉCNICO mensal — fontes brasileiras curadas e verificáveis (sem invenção)
+function buildMonthlyReferencial(m: MonthlyFormState): string {
+  const R: string[] = [];
+  R.push("================ REFERENCIAL TÉCNICO ================");
+  R.push("Fontes institucionais reais para fundamentar as recomendações deste relatório. Confirme a edição vigente no portal de cada instituição.\n");
+  R.push("Fontes-base (sempre aplicáveis):");
+  R.push("   • EMBRAPA Gado de Corte — manejo, nutrição e indicadores zootécnicos. Portal: embrapa.br/gado-de-corte");
+  R.push("   • EMBRAPA Pecuária Sudeste — pastagens, suplementação e desempenho. Portal: embrapa.br/pecuaria-sudeste");
+  R.push("   • Tabelas Brasileiras de Exigências Nutricionais — BR-CORTE (UFV) — exigências e formulação. Portal: brcorte.com.br");
+  R.push("   • MAPA — normas oficiais de sanidade e produção animal. Portal: gov.br/agricultura");
+
+  const cond: string[] = [];
+  const cp = (m.condicaoPasto || "").toLowerCase();
+  if (cp.includes("ruim") || cp.includes("crítico") || cp.includes("regular")) {
+    cond.push("   • Manejo e recuperação de pastagens / oferta de forragem na seca — publicações da EMBRAPA sobre altura de manejo, lotação e pastagens degradadas. Busque 'manejo de pastagens' em embrapa.br.");
+  }
+  if ((m.doencasOcorridas && m.doencasOcorridas.trim()) || m.numAnimaisDoentes > 0) {
+    cond.push("   • Sanidade do rebanho de corte — calendário sanitário, controle de ecto/endoparasitas e doenças prevalentes. EMBRAPA e Programa Nacional de Sanidade dos Herbívoros (MAPA). Portais: embrapa.br e gov.br/agricultura.");
+  }
+  if (m.vendasNum > 0 || m.comprasNum > 0) {
+    cond.push("   • Indicadores econômicos e custos de produção da pecuária de corte — metodologia de custos e análise de resultado da EMBRAPA/CNA. Busque 'custos de produção pecuária de corte' em embrapa.br.");
+  }
+  if ((m.suplementoTipo || "").toLowerCase().includes("ureia")) {
+    cond.push("   • Uso seguro de ureia (NNP) na suplementação — orientações da EMBRAPA sobre adaptação e dosagem segura. Busque 'ureia na alimentação de bovinos' em embrapa.br.");
+  }
+  cond.push("   • Pecuária no litoral/semiárido nordestino — EMBRAPA Semiárido para estratégias de alimentação na estação seca. Portal: embrapa.br/semiarido");
+
+  R.push("\nFontes específicas para os pontos deste mês:");
+  R.push(cond.join("\n"));
+  R.push("\nObservação: todas as fontes acima são instituições e publicações reais e consolidadas. Nenhuma referência foi inventada.");
+  return R.join("\n");
+}
+
+// ANÁLISE OFFLINE mensal — parecer técnico estruturado, determinístico (sem IA)
+function buildMonthlyOfflineAnalysis(m: MonthlyFormState, mx: any): string {
+  const A: string[] = [];
+  const pastoCritico = (m.condicaoPasto || "").toLowerCase().match(/ruim|crítico|regular/) !== null;
+  A.push("================ ANÁLISE TÉCNICA DO MÊS (PARECER) ================\n");
+  A.push("⚠️ Parecer gerado em modo local (sem IA ao vivo). Baseado diretamente nos dados e indicadores apurados.\n");
+  A.push("PARTE I — LEITURA DO MÊS\n");
+  A.push(`• Plantel: passou de ${mx.plantelInicio} para ${mx.plantelFim} cabeças, com ${mx.nascimentos} nascimentos e ${mx.mortes} mortes (mortalidade de ${mx.taxaMortalidadePct}%). ${mx.taxaMortalidadePct > 2 ? "A mortalidade do mês está alta para padrões de corte (referência usual < 2%/ano no rebanho adulto) — investigar causas." : "Mortalidade dentro de patamar aceitável, manter vigilância."}`);
+  A.push(`• Desempenho: GMD médio ponderado de ${mx.gmdMedioPonderado} kg/dia. ${mx.gmdMedioPonderado < 0.4 ? "Abaixo do desejável para fase de crescimento/engorda — checar oferta de pasto, dieta e sanidade." : "Desempenho coerente; acompanhar por categoria para refinar a dieta."}`);
+  A.push(`• Pasto e clima: condição "${m.condicaoPasto || "não informada"}", pluviometria de ${m.pluviometriaMm} mm, manejo ${m.metodoManejoPasto || "não informado"}. ${pastoCritico ? "Sinal de alerta: planejar reforço de volumoso/suplemento e ajustar lotação para não comprometer o GMD." : "Oferta de forragem adequada ao período."}`);
+  A.push(`• Sanidade: ${m.numAnimaisDoentes > 0 ? m.numAnimaisDoentes + " animal(is) doente(s) no mês (" + (m.doencasOcorridas || "ver relato") + "). Reforce o calendário sanitário e a prevenção sazonal." : "sem ocorrências relevantes informadas."}`);
+  A.push(`• Alimentação: consumo de ${mx.consumoSuplementoTonMes} ton de suplemento/ração e ${mx.consumoVolumosoTonMes} ton de volumoso; consumo de pasto estimado em ${mx.consumoPastoEstimadoTonMes} ton de MS (estimativa a partir do plantel e dos pesos). Use esse número para planejar a próxima compra de insumos.`);
+
+  A.push("\nPARTE II — RESULTADO ECONÔMICO E PARECER\n");
+  A.push(`• Custo operacional fixo do mês: R$ ${mx.custoOperacionalFixo.toLocaleString("pt-BR")}. Custo total (com alimentação, comercialização e aquisições): R$ ${mx.custoTotal.toLocaleString("pt-BR")}.`);
+  if (mx.vendasTotal > 0 || mx.receitaVendas > 0) {
+    A.push(`• Mês com venda: receita de R$ ${mx.receitaVendas.toLocaleString("pt-BR")} contra custos operacionais e de alimentação, resultando em um resultado operacional de R$ ${mx.resultadoMes.toLocaleString("pt-BR")} no mês. ${mx.resultadoMes >= 0 ? "Resultado positivo — atividade superavitária no período." : "Resultado negativo no período — avaliar custo por arroba e momento de venda."}`);
+  } else {
+    A.push(`• Mês sem vendas: o resultado operacional aparece negativo (R$ ${mx.resultadoMes.toLocaleString("pt-BR")}) porque há custos sem receita — normal em meses de retenção/engorda; o retorno se realiza no mês da venda.`);
+  }
+  if (mx.custoAquisicao > 0) A.push(`• Aquisições do mês: R$ ${mx.custoAquisicao.toLocaleString("pt-BR")} (investimento em estoque de animais, não é despesa do período).`);
+  A.push(`• Plano para o próximo mês: (1) ${pastoCritico ? "antecipar volumoso e ajustar lotação" : "manter monitoramento de altura/oferta do pasto"}; (2) acompanhar GMD por categoria e corrigir a dieta dos lotes abaixo da meta; (3) ${m.numAnimaisDoentes > 0 ? "reforçar sanidade e isolar casos em resguardo" : "manter o calendário sanitário preventivo"}; (4) consolidar custos por arroba produzida para a tomada de decisão de venda.`);
+  return A.join("\n");
+}
+
+// ENDPOINT: gera o relatório mensal (espelho + análise + referencial)
+app.post("/api/monthly", async (req, res) => {
+  try {
+    const m: MonthlyFormState = req.body;
+    const metrics = computeMonthlyMetrics(m);
+    const id = "mon-" + Math.random().toString(36).substr(2, 9);
+    const ai = getGeminiClient();
+    let analysis = "";
+
+    if (ai) {
+      try {
+        const prompt = `Você é um Pós-Doutor em Zootecnia e Agronomia, especialista referência em manejo pecuário no litoral do Nordeste brasileiro (propriedade ~40 km ao sul de Natal-RN). Analise o ACOMPANHAMENTO MENSAL abaixo e produza APENAS a parte analítica do relatório.
+NÃO repita os dados crus (um espelho fiel já é inserido automaticamente antes) e NÃO escreva bibliografia (há uma seção fixa de Referencial Técnico depois). NUNCA invente referências, normas ou dados.
+
+INDICADORES DO MÊS: plantel ${metrics.plantelInicio}→${metrics.plantelFim} cab.; nascimentos ${metrics.nascimentos}; mortes ${metrics.mortes} (mortalidade ${metrics.taxaMortalidadePct}%); GMD médio ${metrics.gmdMedioPonderado} kg/dia; consumo suplemento ${metrics.consumoSuplementoTonMes} ton; volumoso ${metrics.consumoVolumosoTonMes} ton; pasto estimado ${metrics.consumoPastoEstimadoTonMes} ton MS; custo fixo R$ ${metrics.custoOperacionalFixo}; custo total R$ ${metrics.custoTotal}; receita R$ ${metrics.receitaVendas}; resultado do mês R$ ${metrics.resultadoMes}.
+DADOS COMPLETOS: ${JSON.stringify(m)}
+
+Estruture EXATAMENTE assim:
+================ ANÁLISE TÉCNICA DO MÊS (PARECER) ================
+
+PARTE I — LEITURA DO MÊS
+Comente: dinâmica do plantel e mortalidade; desempenho (GMD) por fase; pasto/clima e pluviometria; sanidade; alimentação (consumo de pasto/volumoso/suplemento).
+
+PARTE II — RESULTADO ECONÔMICO E PARECER
+Custo fixo, custo total, e — havendo venda/compra — receita, custo e resultado da atividade no mês. Finalize com um plano de ação técnico e priorizado para o mês seguinte. Seja específico e fundamentado, sem inventar fontes.`;
+        const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt });
+        analysis = response.text || buildMonthlyOfflineAnalysis(m, metrics);
+      } catch (aiErr) {
+        console.error("Gemini failed during monthly report:", aiErr);
+        analysis = buildMonthlyOfflineAnalysis(m, metrics);
+      }
+    } else {
+      analysis = buildMonthlyOfflineAnalysis(m, metrics);
+    }
+
+    const espelho = buildMonthlyMirror(m, metrics);
+    const referencial = buildMonthlyReferencial(m);
+    const diagnostic = `RELATÓRIO MENSAL DE MANEJO — FAZENDA BRASILEIRA AUGUSTA (PECUÁRIA)\nReferência: ${m.mesReferencia || "—"}\n\n${espelho}\n\n${analysis}\n\n${referencial}`;
+
+    const report: MonthlyReport = { id, timestamp: new Date().toISOString(), formState: m, metrics, diagnostic };
+    lastMonthlyReport = report;
+    res.json(report);
+  } catch (error: any) {
+    console.error("Error creating monthly report:", error);
+    res.status(500).json({ error: error.message || "Falha ao processar o acompanhamento mensal" });
+  }
+});
+
+// ENDPOINT: último relatório mensal (para o Painel do Dono)
+app.get("/api/monthly/last", (req, res) => {
+  res.json(lastMonthlyReport);
 });
 
 // Serve frontend assets in production or mount dev server in development
