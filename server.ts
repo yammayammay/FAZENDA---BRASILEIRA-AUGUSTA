@@ -108,7 +108,7 @@ const submissions: Submission[] = [
       metaSurgimento24: 600,
       metaSurgimento36: 800,
       confinamentoFuturo: "sim_total",
-      categoriaPrioritaria: "Boi em terminação e Garrotes em recria",
+      categoriaPrioritaria: "Animais em terminação",
       capexOrcamento: 130000,
       paybackMeta: "18 a 24 meses",
       restricaoProcesso: "Mão de obra com resistência ao uso de tecnologia, dificuldades em gerenciar dosagem exata de ureia e sal mineral.",
@@ -264,6 +264,220 @@ function calculateMetrics(formState: FormState) {
   };
 }
 
+// Rótulos legíveis das categorias do plantel
+const HERD_LABELS: Record<string, string> = {
+  bezerroLactente: "Bezerro(a) Lactente",
+  bezerroDesmamado: "Bezerro(a) Desmamado(a)",
+  novilha: "Novilha (8 a 24 meses)",
+  vacaSolteira: "Vaca Solteira / Vazia",
+  vacaParida: "Vaca Parida / Lactante",
+  vacaGestanteSeca: "Vaca Gestante (Seca)",
+  garroteRecria: "Garrote/Garrota",
+  boiTerminacao: "Animal em Terminação",
+  touro: "Touro",
+};
+
+const EQUIP_LABELS: Record<string, string> = {
+  balancaTronco: "Balança de Tronco",
+  forrageira: "Forrageira/Ensiladeira",
+  misturador: "Misturador de Ração",
+  moinho: "Moinho/Triturador",
+  trator: "Trator",
+  deposito: "Depósito/Galpão",
+  balancaPesagem: "Balança de Pesagem de Fluxo",
+  bombaTransferencia: "Bomba de Transferência",
+};
+
+const confinamentoLabel = (v: string) =>
+  v === "sim_total" ? "Sim — confinamento total" :
+  v === "sim_semi" ? "Sim — semi-confinamento" :
+  v === "nao" ? "Não — manter a pasto" : "Ainda a avaliar";
+
+// ESPELHO DO FORMULÁRIO — reprodução fiel e determinística das respostas (sem IA)
+function buildFormMirror(f: FormState, m: any): string {
+  const L: string[] = [];
+  const line = (label: string, val: any) => {
+    const v = (val === undefined || val === null || val === "") ? "—" : val;
+    L.push(`   • ${label}: ${v}`);
+  };
+  L.push("================ ESPELHO DO FORMULÁRIO (respostas exatamente como preenchidas) ================\n");
+
+  L.push("BLOCO 01 — IDENTIFICAÇÃO DO PREENCHEDOR");
+  line("Nome", f.nomeProdutor);
+  line("Cargo/Função", f.cargo);
+  line("WhatsApp", f.contatoZap);
+  line("E-mail", f.email);
+  line("Cidade/Unidade", f.cidade);
+
+  L.push("\nBLOCO 02 — COMPOSIÇÃO DO PLANTEL");
+  Object.keys(HERD_LABELS).forEach((k) => {
+    const i: any = (f.herd as any)[k];
+    if (i && (i.heads > 0 || i.weight > 0)) line(HERD_LABELS[k], `${i.heads} cab. | PV ${i.weight} kg | IMS ${i.imsCoef}%`);
+  });
+  (f.extraCategories || []).forEach((c) => {
+    if (c.name || c.heads > 0) line(`Categoria adicional: ${c.name || "(sem nome)"}`, `${c.heads} cab. | PV ${c.weight} kg | IMS ${c.imsCoef}%`);
+  });
+  line("TOTAL apurado", `${m.totalHeads} cabeças | Biomassa ${m.totalBiomass} kg PV | MS ${m.totalMsDia} kg/dia`);
+  line("Rotina de controle do plantel", f.rotinaControle);
+
+  L.push("\nBLOCO 03 — DESEMPENHO (GMD) E GENÉTICA");
+  line("GMD bezerro desmamado (kg/dia)", f.bezerroDesmGmd);
+  line("GMD novilha (kg/dia)", f.novilhaGmd);
+  line("GMD garrote/garrota (kg/dia)", f.garroteGmd);
+  line("GMD animal em terminação (kg/dia)", f.boiGmd);
+  line("GMD vaca (kg/dia)", f.vacaGmd);
+  line("Origem do GMD", f.gmdMedido);
+  line("Peso de entrada (kg)", f.pesoEntrada);
+  line("Peso alvo de abate (kg)", f.pesoAlvo);
+  line("Rendimento de carcaça (%)", f.rendimentoCarcaça);
+  line("Tempo de aprovação/terminação (dias)", f.tempoAprov);
+  line("Raças predominantes", (f.racas && f.racas.length) ? f.racas.join(", ") : f.racaPredominante);
+  line("Animais vendidos (12m)", f.animaisVendidosAnual);
+  line("Rotina de aferição de desempenho", f.rotinaDesempenho);
+
+  L.push("\nBLOCO 04 — COMERCIALIZAÇÃO");
+  line("Preço da arroba (R$)", f.precoArroba);
+  line("Destino principal da venda", f.destinoPrincipal === "Outro" && f.destinoPrincipalOutro ? `Outro (${f.destinoPrincipalOutro})` : f.destinoPrincipal);
+  line("Custos de comercialização (R$/cabeça)", f.custoComercializacao);
+  line("Tipo de contrato", f.contrato);
+  line("Meses de maior venda", (f.sazonalidade || []).join(", "));
+  line("Meta de receita anual (R$)", f.metaReceitaAnual);
+  line("Rotina comercial", f.rotinaComercial);
+
+  L.push("\nBLOCO 05 — ALIMENTAÇÃO E PASTAGEM");
+  line("Área total de pastagem (ha)", f.areaTotalPastagem);
+  line("Espécie predominante de pasto", f.especiePredominantePastagem);
+  line("Estado de degradação", f.estadoMedioPastagem);
+  line("Sistema de pastagem", f.sistemaPastejo);
+  line("Controle de entrada/saída do pasto", f.metodoControlePastejo);
+  line("Correção de solo/adubação", f.correcaoSoloAdubacao);
+  line("Uso de vinhaça (alambique)", f.usoVinhaca);
+  line("Custo da vinhaça (R$/ha)", f.custoVinhacaHa);
+  line("Pragas mais comuns", f.pragasComuns);
+  line("Técnicas de manejo de pasto", f.tecnicasManejo);
+  line("Nº de piquetes", f.numPiquetes);
+  line("Custo mensal de pastagem (R$)", f.custoMensalPastagem);
+  line("Volumosos complementares", (f.volumosos || []).join(", ") + (f.capimTipo ? ` | Capim: ${f.capimTipo}` : ""));
+  line("Volume de volumoso (ton/mês)", f.volumeMesVolumoso);
+  line("Custo de volumoso (R$/mês)", f.custoVolumoso);
+  line("Suplementos utilizados", (f.suplementos || []).join(", "));
+  line("Volume de suplemento (ton/mês)", f.volumeSuplMes);
+  line("Custo de suplemento (R$/mês)", f.custoSuplemento);
+  line("Fornecedor de suplemento", f.fornecedorSuplemento);
+  line("Distância do fornecedor (km)", f.distanciaFornecedor);
+  line("Frequência de fornecimento", f.frequenciaFornecimento);
+  line("Rotina de alimentação", f.rotinaAlimentacao);
+  line("Planejamento estratégico de suplemento/ração", f.planejamentoSuplemento);
+
+  L.push("\nBLOCO 06 — CUSTOS OPERACIONAIS");
+  line("Mão de obra direta (R$/mês)", f.maoDeObraDireta);
+  line("Sanidade (R$/mês)", f.sanidade);
+  line("Manutenção de equipamentos (R$/mês)", f.manutencaoEquip);
+  line("Outro custo (R$/mês)", `${f.custoExtra} ${f.descCustoExtra ? "(" + f.descCustoExtra + ")" : ""}`);
+  line("Rotina de apuração de custos", f.rotinaCustos);
+
+  L.push("\nBLOCO 07 — INFRAESTRUTURA EXISTENTE (EQUIPAMENTOS E INSTALAÇÕES)");
+  Object.keys(EQUIP_LABELS).forEach((k) => {
+    const e: any = (f.equipments as any)[k];
+    if (e) line(EQUIP_LABELS[k], e.possui ? `Possui — ${e.status}${e.capacidade ? " | " + e.capacidade : ""}${e.obs ? " | " + e.obs : ""}` : "Não possui");
+  });
+  line("Terreno disponível", f.terrenoDisponivel);
+  line("Energia trifásica", f.energiaTrifasica);
+  line("Distância até o curral (m)", f.distanciaCurral);
+  line("Rotina de infraestrutura", f.rotinaInfra);
+
+  L.push("\nBLOCO 08 — PERSPECTIVAS E VISÃO ESTRATÉGICA");
+  line("Vocação da propriedade", f.vocacaoPropriedade);
+  line("Papel de uma eventual fábrica de ração", f.papelFabricaRacao);
+  line("Categoria prioritária", f.categoriaPrioritaria);
+  line("Planeja confinamento", confinamentoLabel(f.confinamentoFuturo));
+  line("Rebanho planejado (24m)", f.metaSurgimento24);
+  line("Rebanho planejado (36m)", f.metaSurgimento36);
+  line("CAPEX pretendido (R$)", f.capexOrcamento);
+  line("Payback meta", f.paybackMeta);
+  line("Visão do proprietário", f.visaoProprietario);
+  line("Visão do gerente", f.visaoGerente);
+  line("Visão da operação (vaqueiro)", f.visaoOperacional);
+  line("Visão administrativa/financeira", f.visaoAdministrativa);
+  line("Gargalos/restrições do processo", f.restricaoProcesso);
+  line("Expectativas gerais", f.expectativasGerais);
+  line("Contexto real (relato livre)", f.contextoReal);
+
+  return L.join("\n");
+}
+
+// REFERENCIAL TÉCNICO — fontes brasileiras curadas e verificáveis (sem invenção).
+// Itens fixos + itens condicionais aos gargalos identificados no formulário.
+function buildReferencialTecnico(f: FormState): string {
+  const R: string[] = [];
+  R.push("================ REFERENCIAL TÉCNICO ================");
+  R.push("Fontes institucionais brasileiras para aprofundar os pontos do diagnóstico. Recomenda-se confirmar a edição mais recente de cada material diretamente no portal da instituição.\n");
+
+  R.push("Fontes-base (sempre aplicáveis):");
+  R.push("   • EMBRAPA Gado de Corte (Campo Grande/MS) — pesquisa em nutrição, manejo e sistemas de produção de bovinos de corte. Portal: embrapa.br/gado-de-corte");
+  R.push("   • EMBRAPA Pecuária Sudeste (São Carlos/SP) — pastagens, suplementação e melhoramento. Portal: embrapa.br/pecuaria-sudeste");
+  R.push("   • Tabelas Brasileiras de Exigências Nutricionais — BR-CORTE (Universidade Federal de Viçosa) — referência para exigências e formulação de dietas de bovinos de corte. Portal: brcorte.com.br");
+  R.push("   • Agência Embrapa de Informação Tecnológica (Ageitec) — árvores do conhecimento sobre bovinos de corte e pastagens. Portal: embrapa.br (busca por 'Ageitec')");
+  R.push("   • MAPA — Ministério da Agricultura e Pecuária — normas oficiais de produção e alimentação animal. Portal: gov.br/agricultura");
+
+  const cond: string[] = [];
+  const estado = (f.estadoMedioPastagem || "").toLowerCase();
+  if (estado.includes("alto") || estado.includes("moderado") || estado.includes("misto")) {
+    cond.push("   • Recuperação e renovação de pastagens degradadas — publicações da EMBRAPA sobre diagnóstico de degradação, correção de solo e integração lavoura-pecuária-floresta (ILPF). Rede ILPF: embrapa.br (busca por 'pastagens degradadas' e 'ILPF').");
+  }
+  if ((f.usoVinhaca || "").toLowerCase().startsWith("sim") || (f.custoVinhacaHa || 0) > 0) {
+    cond.push("   • Uso agrícola da vinhaça (fertirrigação) — orientações técnicas da EMBRAPA e da CETESB sobre dosagem e cuidados ambientais no aproveitamento de vinhaça. Busque por 'fertirrigação com vinhaça' no portal embrapa.br.");
+  }
+  if ((f.suplementos || []).includes("cama_frango")) {
+    cond.push("   • Instrução Normativa nº 08/2004 do MAPA — proíbe o uso de cama de frango e outros subprodutos de origem animal na alimentação de ruminantes. Consulte o texto oficial em gov.br/agricultura (legislação).");
+  }
+  if ((f.suplementos || []).includes("ureia_pecuaria")) {
+    cond.push("   • Uso seguro de ureia (NNP) para bovinos — material da EMBRAPA sobre adaptação gradual, dosagem e prevenção de intoxicação. Busque por 'ureia na alimentação de bovinos' no portal embrapa.br.");
+  }
+  const arenoso = (f.especiePredominantePastagem || "").toLowerCase();
+  cond.push("   • Pecuária no semiárido e litoral nordestino — EMBRAPA Semiárido (Petrolina/PE) para estratégias de alimentação na estação seca, palma forrageira e conservação de forragem. Portal: embrapa.br/semiarido");
+  cond.push("   • Fabricação de ração na fazenda — materiais técnicos da EMBRAPA e do SENAR sobre formulação, moagem, mistura e armazenamento seguro de grãos (controle de aflatoxinas). Portais: embrapa.br e senar.org.br");
+
+  if (cond.length) {
+    R.push("\nFontes específicas para os gargalos identificados neste formulário:");
+    R.push(cond.join("\n"));
+  }
+  R.push("\nObservação: as fontes acima são instituições e publicações reais e consolidadas. Nenhuma referência foi inventada. Para citar formalmente, acesse o portal indicado e copie o título e o ano da edição vigente.");
+  return R.join("\n");
+}
+
+// ANÁLISE OFFLINE — parecer técnico estruturado por bloco + geral, sem IA (determinístico).
+function buildOfflineAnalysis(f: FormState, m: any): string {
+  const A: string[] = [];
+  const pastoCritico = (f.estadoMedioPastagem || "").toLowerCase().includes("alto") || (f.estadoMedioPastagem || "").toLowerCase().includes("moderado");
+  const temTrifasica = f.energiaTrifasica === "Sim";
+  const usaUreia = (f.suplementos || []).includes("ureia_pecuaria");
+  const usaCamaFrango = (f.suplementos || []).includes("cama_frango");
+
+  A.push("================ ANÁLISE TÉCNICA (PARECER) ================\n");
+  A.push("⚠️ Parecer gerado em modo local (sem IA ao vivo). Estrutura técnica baseada diretamente nos dados informados.\n");
+
+  A.push("PARTE I — ANÁLISE POR BLOCO\n");
+  A.push(`• BLOCO 01 (Identificação): respondente ${f.nomeProdutor || "não informado"}${f.cargo ? " (" + f.cargo + ")" : ""}. Importante validar com proprietário, gerente e vaqueiro para triangular a visão da operação.`);
+  A.push(`• BLOCO 02 (Plantel & Matéria Seca): plantel de ${m.totalHeads} cabeças, biomassa de ${m.totalBiomass} kg PV, demanda de ${m.totalMsDia} kg de MS/dia (${Math.round(m.totalMsMes)} kg/mês). Esse é o número que dimensiona qualquer fábrica de ração e a capacidade de pasto.`);
+  A.push(`• BLOCO 03 (Desempenho/Genética): GMD de terminação informado de ${f.boiGmd} kg/dia; peso de abate alvo de ${f.pesoAlvo} kg em ~${f.tempoAprov} dias. Raças: ${(f.racas && f.racas.length) ? f.racas.join(", ") : (f.racaPredominante || "não informado")}. GMD baixo costuma indicar gargalo nutricional ou de pasto — alvo claro para a ração própria.`);
+  A.push(`• BLOCO 04 (Comercialização): arroba a R$ ${f.precoArroba}, destino ${f.destinoPrincipal || "não informado"}, custo de comercialização de R$ ${f.custoComercializacao || 0}/cabeça. Esses custos entram no cálculo da margem que a fábrica própria pode liberar.`);
+  A.push(`• BLOCO 05 (Pastagem & Suplementação — TEMA CENTRAL): pasto em estado "${f.estadoMedioPastagem || "não informado"}", sistema ${f.sistemaPastejo || "não informado"}, controle de pasto por "${f.metodoControlePastejo || "não informado"}". ${pastoCritico ? "O grau de degradação indicado exige plano de recuperação de pasto e reforço de volumoso de cocho na seca." : "Mantenha o monitoramento de altura/oferta de forragem."} Suplementos atuais: ${(f.suplementos || []).join(", ") || "nenhum"}. ${usaCamaFrango ? "ALERTA SANITÁRIO: cama de frango é PROIBIDA para ruminantes (IN 08/2004 MAPA) — recomenda-se suspender imediatamente. " : ""}${usaUreia ? "O uso de ureia exige adaptação gradual e mistura homogênea — ponto a favor de um misturador adequado. " : ""}Planejamento relatado: ${f.planejamentoSuplemento || "não informado"}.`);
+  A.push(`• BLOCO 06 (Custos): mão de obra R$ ${f.maoDeObraDireta}/mês, sanidade R$ ${f.sanidade}/mês, manutenção R$ ${f.manutencaoEquip}/mês. O custo mensal estimado de alimentação apurado é de R$ ${m.totalMonthlyFeedCost?.toLocaleString?.("pt-BR") || m.totalMonthlyFeedCost} (R$ ${m.costPerAnimalMonth}/cab/mês).`);
+  A.push(`• BLOCO 07 (Infraestrutura): ${f.equipments?.misturador?.possui ? "já há misturador" : "não há misturador"}; ${f.equipments?.moinho?.possui ? "moinho presente" : "sem moinho"}; energia trifásica ${temTrifasica ? "ativa (favorece moagem/mistura eficiente)" : "ausente/indefinida (avaliar adequação elétrica antes do CAPEX)"}. Equipamentos já existentes reduzem o CAPEX necessário.`);
+  A.push(`• BLOCO 08 (Estratégia): vocação "${f.vocacaoPropriedade || "não informado"}"; papel pretendido da fábrica: "${f.papelFabricaRacao || "não informado"}"; metas de ${f.metaSurgimento24} (24m) e ${f.metaSurgimento36} (36m) cabeças; CAPEX de R$ ${f.capexOrcamento} com payback meta de "${f.paybackMeta || "não informado"}".`);
+
+  A.push("\nPARTE II — ANÁLISE GERAL E PARECER\n");
+  A.push(`Dimensionamento: para a demanda atual e as metas de crescimento, recomenda-se um misturador de aproximadamente ${m.suggestedMixerCapacityKg} kg/batelada e silo/depósito da ordem de ${m.suggestedSiloVolumeM3} m³. ${(f.volumosos || []).some((v) => ["cana_picada", "bagaco_cana", "capim", "silagem_capim"].includes(v)) ? "Como há volumosos fibrosos/úmidos na dieta (cana, bagaço, capim), avalie misturador HORIZONTAL helicoidal, que lida melhor com fibra — exige motor trifásico mais robusto." : "Para mistura predominantemente seca (farelos e grãos moídos), um misturador VERTICAL atende com menor CAPEX e menor exigência elétrica."}`);
+  A.push(`Clima/maresia: por ser litoral úmido e salino (~40 km ao sul de Natal-RN), proteja estrutura e motores (aço galvanizado, epóxi marítimo ou inox 304) e armazene grãos suspensos a 50 cm das paredes para prevenir aflatoxinas.`);
+  A.push(`Viabilidade: a economia típica da formulação própria (R$ 300–500/tonelada vs. concentrado ensacado) tende a pagar o investimento de R$ ${f.capexOrcamento} dentro de uma janela compatível com a meta de "${f.paybackMeta || "payback informado"}", desde que o volume mensal de ração justifique a operação. Recomenda-se confirmar o cálculo com o volume real de concentrado consumido.`);
+  A.push(`Plano de ação imediato: (1) padronizar pesagem/dosagem; (2) ${pastoCritico ? "iniciar recuperação de pasto e planejar volumoso para a seca" : "manter monitoramento de pasto"}; (3) ${usaCamaFrango ? "suspender a cama de frango (proibição legal)" : "revisar a formulação dos suplementos"}; (4) levantar volume real de concentrado para fechar o payback; (5) adequar infraestrutura elétrica e de armazenamento antes da compra dos equipamentos.`);
+
+  return A.join("\n");
+}
+
+
+
 // 1. ENDPOINT: Get list of all form submissions
 app.get("/api/submissions", (req, res) => {
   res.json(submissions);
@@ -279,6 +493,7 @@ app.post("/api/submissions", async (req, res) => {
     // Call Gemini to generate a strategic diagnostic based on the farmer's detailed form input
     const ai = getGeminiClient();
     let diagnostic = "";
+    let analysis = "";
 
     if (ai) {
       try {
@@ -346,43 +561,42 @@ PERSPECTIVAS DE EXPANSÃO E VISÃO ESTRATÉGICA:
 IMPORTANTE: A propriedade AINDA NÃO POSSUI fábrica de ração. O objetivo deste diagnóstico é avaliar tecnicamente se a implantação de uma produção própria de ração é indicada ou não, com base nos dados acima. Trate a fábrica como hipótese a ser avaliada, não como algo já existente.
 
 INSTRUÇÕES DE ESCRITA (ESCREVA EM PORTUGUÊS):
-Seja extremamente específico e focado em engenharia de pecuária real e agroindústria de fábrica de ração.
-Divida o feedback em 5 seções numeradas claras:
-1. **Dimensionamento do Plantel & Balanço de Matéria Seca (IMS)** - Avalie a biomassa real e se o pasto atual comporta a carga animal projetada.
-2. **Sizing e Layout da Fábrica de Ração Recomendado** - Indique o tamanho e o tipo exato de misturador (Vertical de 500kg, Horizontal de 1000kg helicoidal etc.) adequado para as metas de 24/36 meses. Indique silos ideais e potência requerida de moagem considerando a energia trifásica disposta.
-3. **Resistência à Maresia e Umidade da Costa Potiguar** - Como proteger a estrutura, motores e silos no relevo úmido de Nísia Floresta, RN (salinidade, oxidação e proliferação de fungos tipo aflatoxinas no milho armazenado).
-4. **Análise Financeira e Viabilidade (CAPEX de R$ ${formState.capexOrcamento})** - Faça os cálculos se o orçamento cobre a infraestrutura e qual a estimativa realista de retorno financeiro (payback) do projeto em meses ao deixar de comprar ração pronta ensacada.
-5. **Recomendações e Próximos Passos Operacionais** - Plano de ação imediato para diminuir desvios e treinar os peões resistentes descritos.`;
+Você produzirá APENAS a parte analítica do laudo. NÃO repita os dados crus do formulário (um espelho fiel já é inserido automaticamente antes da sua resposta) e NÃO escreva bibliografia (há uma seção fixa de "Referencial Técnico" inserida automaticamente depois). NUNCA invente referências, autores ou normas.
+Estruture sua resposta EXATAMENTE assim:
+
+================ ANÁLISE TÉCNICA (PARECER) ================
+
+PARTE I — ANÁLISE POR BLOCO
+Comente um a um, com aplicabilidade técnica real e números quando possível:
+- BLOCO 01 (Identificação e contexto do preenchedor)
+- BLOCO 02 (Plantel e balanço de Matéria Seca — avalie se o pasto comporta a carga animal)
+- BLOCO 03 (Desempenho/GMD e genética)
+- BLOCO 04 (Comercialização e custos de venda)
+- BLOCO 05 (Pastagem, volumoso e suplementação — TEMA CENTRAL, pois a fábrica de ração nasceu daqui)
+- BLOCO 06 (Custos operacionais)
+- BLOCO 07 (Infraestrutura existente e seu impacto na redução do CAPEX)
+- BLOCO 08 (Visão estratégica e vocação da propriedade)
+
+PARTE II — ANÁLISE GERAL E PARECER
+Diagnóstico integrado: dimensionamento e tipo de misturador recomendado (Vertical para mistura seca; Horizontal helicoidal se houver fibra/úmido como cana e bagaço) para as metas de 24/36 meses; silos e potência de moagem considerando a energia trifásica disponível; proteção contra maresia e aflatoxinas (litoral ~40 km ao sul de Natal-RN); parecer de viabilidade (CAPEX de R$ ${formState.capexOrcamento} e estimativa realista de payback); e um plano de ação imediato e priorizado.`;
 
         const response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-2.5-flash",
           contents: prompt,
         });
-        diagnostic = response.text || "";
+        analysis = response.text || buildOfflineAnalysis(formState, keyMetrics);
       } catch (aiError) {
         console.error("Gemini failed during submission diagnostic:", aiError);
-        diagnostic = "⚠️ (Nota: Diagnóstico gerado de forma local devido à inconsistência de chave Gemini.)\n\nInstalando equipamentos: Com base nos dados inseridos de " + keyMetrics.totalHeads + " cabeças, recomendamos estruturar um misturador vertical de 500kg e focar na reforma do moinho existente de martelos. O CAPEX sugerido de R$ " + formState.capexOrcamento + " atende à compra inicial dos maquinários indispensáveis de mistura.";
+        analysis = buildOfflineAnalysis(formState, keyMetrics);
       }
     } else {
-      // Offline fallback text based on form values
-      diagnostic = `**DIAGNÓSTICO AUTOMÁTICO LOCAL DA FAZENDA BRASILEIRA AUGUSTA**
-
-1. **Dimensionamento do Plantel & Consumo de Matéria Seca**:
-Seu plantel mapeado de **${keyMetrics.totalHeads} cabeças** consome cerca de **${keyMetrics.totalMsDia} kg de Matéria Seca por dia**. O volumoso e a pastagem devem atuar em harmonia. Caso o pasto esteja degradado, você precisará suprir com volumoso complementar de cana-de-açúcar ou silagem na proporção média de 12 a 15 kg de material verde por cabeça/dia.
-
-2. **Recomendação de Fábrica de Ração**:
-Para as metas de rebanho especificadas de **${formState.metaSurgimento24} cabeças** em 24 meses, aconselhamos a instalação de um misturador de ração vertical de **${keyMetrics.suggestedMixerCapacityKg} kg** com silo pulmão de dosagem rápida. Como você indicou ${formState.energiaTrifasica === "Sim" ? "redes com energia trifásica ativa" : "ausência ou desconhecimento de rede trifásica"}, os motores elétricos recomendados são os trifásicos de 10 CV para moagem eficiente de milho com martelos novos de 3mm a 4mm.
-
-3. **Maresia e Guarda de Alimentos (Nísia Floresta - RN)**:
-A proximidade com a zona litorânea do Rio Grande do Norte gera umidade noturna elevada. Armazene o sal de ureia e os concentrados em paletes de madeira isolando-os a no mínimo 50cm das paredes de alvenaria para evitar o endurecimento ou proliferação de aflatoxinas fúngicas na ração formulada.
-
-4. **Payback e Viabilidade do CAPEX (Orçamento: R$ ${formState.capexOrcamento})**:
-A economia estimada na produção própria contra rações terceirizadas é de cerca de 25% a 30% por tonelada misturada. Com seu plantel, o payback do investimento de R$ ${formState.capexOrcamento} ocorrerá em aproximadamente **12 a 16 meses**, o que se enquadra de forma excelente na sua meta declarada de ${formState.paybackMeta}.
-
-5. **Próximos Passos Recomendados**:
-- Calibrar as células de carga da balança de tronco.
-- Adquirir um misturador mecânico vertical para acabar com as inconsistências nutricionais no cocho dos bois e vacas paridas.`;
+      analysis = buildOfflineAnalysis(formState, keyMetrics);
     }
+
+    // Montagem do LAUDO final: espelho fiel + análise + referencial técnico curado.
+    const espelho = buildFormMirror(formState, keyMetrics);
+    const referencial = buildReferencialTecnico(formState);
+    diagnostic = `LAUDO TÉCNICO — FAZENDA BRASILEIRA AUGUSTA (PECUÁRIA)\n\n${espelho}\n\n${analysis}\n\n${referencial}`;
 
     // Build automated email logs representing real immediate notifications
     const emailsSent = [
@@ -423,44 +637,53 @@ app.post("/api/chat", async (req, res) => {
     const { messages, formState, model, thinkingLevel } = req.body;
     const ai = getGeminiClient();
 
-    const selectedModel = model || "gemini-3.5-flash";
+    const selectedModel = model || "gemini-2.5-flash";
 
     // Setup of System Instructions with absolute professional constraints for Fazenda Augusta
-    const systemPrompt = `Você é o "Consultor de Fábrica de Ração e Inteligência Estratégica" oficial da Fazenda Brasileira Augusta, localizada em Nísia Floresta, Rio Grande do Norte (RN).
-O seu papel é apoiar os produtores e gerentes a calcularem o consumo do rebanho, projetarem sua fábrica local de ração concentrada e resolverem gargalos nutricionais.
+    const systemPrompt = `Você é o "Assistente IA - Consultor da Fazenda Brasileira Augusta", um especialista SÊNIOR em gestão estratégica de manejo pecuário.
 
-### SEU CONTEXTO E PILARES DE CONHECIMENTO:
-1. **Conversão Alimentar e Matéria Seca (IMS)**:
-   - Coeficientes clássicos de ingestão (% do Peso Vivo): Bezerro lactente: 1.5%, Vaca parida/lactante: 2.8%, Vacas secas e touros: 1.8%, Bois em engorda/terminação: 2.2%, Outros: 2.0%.
-   - Ingestão total diária de MS = Cabeças * Peso Médio * (IMS % / 100).
-2. **Dimensionamento e Maquinário de Fábrica (Sizing)**:
-   - Misturador Vertical: Ótimo para misturas secas, farelos homogenizados, fácil carregamento por rosca transportadora (chupim). Baixa necessidade de motores trifásicos pesados (geralmente de 3 a 5 CV).
-   - Misturador Horizontal: Extremamente superior se houver fibras acopladas (como bagaço de cana, feno picado ou volumosos úmidos) ou melaço líquido. Mistura muito mais rápida (3 a 5 min) vs vertical (15 a 20 min), porém exige motores trifásicos robustos (7.5 a 15 CV) e investimento (CAPEX) bem superior.
-   - Moega e Moinho: O milho grão seco precisa de moagem uniforme. Martelos de 3mm para farelo fino (suínos/aves) e de 4mm a 5mm para pecuária de corte (estimula ruminação saudável).
-3. **Maresia e Clima Costeiro Potiguar (Nísia Floresta, RN)**:
-   - Altíssima umidade relativa do ar gera oxidação rápida de silos de ferro tradicionais. Recomende aço galvanizado durável, aplicação de fundos antioxidantes industriais ou inox 304.
-   - A umidade facilita proliferação de fungos aflatoxinas. Os silos ou depósitos de sacarias devem ser suspensos sobre estrados a 50cm do chão e nunca colados nas paredes ÚMIDAS.
-4. **Análise de Custos e CAPEX**:
-   - Analisar o payback do plano. Economia média estimada de formulação caseira própria é de R$ 300 a R$ 500 por tonelada produzida contra comprar concentrado pronto comercial ensacado de marcas regionais.
+### SUA PERSONA E CREDENCIAIS:
+- PhD em Zootecnia e Pecuária, com Pós-Doutorado em Manejo de Pasto e Suplementação.
+- Formação adicional em Engenharia de Produção, com experiência prática na implantação e operação de fábricas de ração dentro de fazendas.
+- Especialista de referência da EMBRAPA, com domínio das condições reais da pecuária no Nordeste brasileiro.
+- Você assessora uma propriedade localizada no litoral do Nordeste (coordenadas 6°05'28" Sul, 35°12'31" Oeste), a cerca de 40 km ao sul de Natal-RN (região de Nísia Floresta), com clima quente e úmido, maresia costeira, solos predominantemente arenosos e estação seca marcada.
 
-### DADOS ATUAIS DA FAZENDA QUE O USUÁRIO JÁ PREENCHEU (DÊ RESPOSTAS CONTEXTUAIS SE DISPONÍVEIS):
+### SEU PAPEL:
+Apoiar proprietário, gerente, vaqueiro e administrativo a dimensionarem o consumo do rebanho, avaliarem tecnicamente a viabilidade de uma fábrica de ração PRÓPRIA (que ainda NÃO existe — é uma hipótese a avaliar), resolverem gargalos de manejo de pasto e suplementação, e tomarem decisões com embasamento técnico e financeiro.
+
+### PILARES TÉCNICOS DE CONHECIMENTO:
+1. **Ingestão de Matéria Seca (IMS)**: Coeficientes de ingestão (% do Peso Vivo): bezerro lactente ~1.5%, vaca parida/lactante ~2.8%, vacas secas e touros ~1.8%, animais em terminação ~2.2%, garrotes/garrotas e demais ~2.0%. MS diária total = Cabeças × Peso Médio × (IMS%/100). Referencie as Tabelas Brasileiras de Exigências Nutricionais (BR-CORTE) e materiais da EMBRAPA quando útil.
+2. **Manejo de Pasto** (sua especialidade de pós-doc): avalie sistema de pastejo (contínuo, rotacionado, diferido, alternado), altura de entrada/saída, lotação, vedação, correção de solo e adubação. Em solo arenoso de litoral, atente para baixa CTC e necessidade de manejo conservacionista. Considere déficit forrageiro na seca e o papel do volumoso de cocho.
+3. **Suplementação e Formulação**: proteinado/energético, ureia (NNP) com segurança de adaptação, milho moído, farelos, volumosos (silagem, cana, palma, bagaço). ATENÇÃO sanitária: cama de frango é PROIBIDA para ruminantes pela Instrução Normativa nº 08/2004 do MAPA — sempre alerte se citada.
+4. **Dimensionamento de Fábrica de Ração**: Misturador Vertical (misturas secas, 3-5 CV, menor CAPEX) vs Horizontal (fibras/úmidos como bagaço e cana, 7.5-15 CV, mistura mais rápida, CAPEX maior). Moinho de martelos: 4-5mm para corte (estimula ruminação).
+5. **Clima Costeiro e Maresia**: alta umidade e salinidade oxidam estruturas de ferro — recomende aço galvanizado, epóxi marítimo ou inox 304; armazene grãos suspensos a 50cm das paredes para evitar aflatoxinas.
+6. **Custos, CAPEX e Payback**: economia típica da formulação própria de R$ 300 a R$ 500/tonelada vs concentrado comercial ensacado; avalie payback com base no volume real do plantel.
+
+### DADOS ATUAIS DA FAZENDA QUE O USUÁRIO JÁ PREENCHEU (USE SE DISPONÍVEIS):
 ${
   formState
     ? JSON.stringify({
         produtor: formState.nomeProdutor,
         plantel: formState.herd,
-        gmdBois: formState.boiGmd,
+        gmdAnimaisTerminacao: formState.boiGmd,
+        racas: formState.racas,
+        sistemaPastejo: formState.sistemaPastejo,
+        estadoPastagem: formState.estadoMedioPastagem,
+        suplementos: formState.suplementos,
+        planejamentoSuplemento: formState.planejamentoSuplemento,
         capexDisponivel: formState.capexOrcamento,
-        metaReceita: formState.metaReceitaAnual,
-        equipamentosPossuidos: formState.equipments,
+        vocacao: formState.vocacaoPropriedade,
+        papelFabrica: formState.papelFabricaRacao,
       })
-    : "O formulário ainda não foi preenchido. Ofereça-se para ajudar a preencher ou tirar dúvidas de dosagem!"
+    : "O formulário ainda não foi preenchido. Ofereça-se para ajudar a preencher ou tirar dúvidas de manejo e suplementação!"
 }
 
-### DIRETRIZES DE ESTILO DE RESPOSTA (EM PORTUGUÊS):
-- Seja altamente profissional, amigável, confiante e técnico. Use termos como 'Biomassa', 'Ingestão de Matéria Seca', 'Helicoide', 'Maresia Costeira', 'Payback'.
-- Dê exemplos práticos e cálculos matemáticos se o usuário pedir ajuda de dimensionamento.
-- Nunca invente dados irreais de localização de Nísia Floresta (saiba que fica próximo a Natal e Parnamirim, próxima ao litoral sul, famosa por lagoas e clima quente/úmido de dunas e coqueirais).`;
+### DIRETRIZES DE ESTILO (RESPONDA EM PORTUGUÊS):
+- Tom de consultor sênior: técnico, objetivo, confiante e didático, mas acessível ao homem do campo.
+- Dê exemplos práticos e cálculos quando o usuário pedir dimensionamento.
+- NUNCA invente referências bibliográficas, autores, normas ou dados que você não tenha certeza. Se não souber uma fonte exata, oriente a consultar a EMBRAPA ou um zootecnista local em vez de inventar.
+- Trate a fábrica de ração como hipótese a ser avaliada tecnicamente, não como algo existente.`;
+
 
     if (!ai) {
       // Return a simulated high-quality consultant fallback chat message
