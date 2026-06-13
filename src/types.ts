@@ -100,7 +100,8 @@ export interface FormState {
   dispBagacoVinhaca: string;
   vinhacaUtilizada: string;
 
-  suplementos: string[]; // ["sal_proteico", "ração_comercial", etc]
+  suplementos: string[];
+  planejamentoSuplemento?: string; // info geral, gargalos e planejamento sobre suplemento/ração (Bloco 05C) // ["sal_proteico", "ração_comercial", etc]
   volumeSuplMes: number;
   custoSuplemento: number;
   fornecedorSuplemento: string;

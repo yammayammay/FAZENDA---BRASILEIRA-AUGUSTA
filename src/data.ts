@@ -7,8 +7,8 @@ export const categoryLabels: Record<string, string> = {
   vacaSolteira: "Vaca Solteira / Vazia",
   vacaParida: "Vaca Parida / Lactante",
   vacaGestanteSeca: "Vaca Gestante (Seca)",
-  garroteRecria: "Garrote em Recria",
-  boiTerminacao: "Boi em Terminação",
+  garroteRecria: "Garrote/Garrota",
+  boiTerminacao: "Animal em Terminação",
   touro: "Touro",
 };
 
@@ -30,6 +30,7 @@ export const breedOptions: string[] = [
   "Canchim",
   "Simental",
   "Caracu",
+  "Wagyu",
   "Cruzamento Industrial (F1)",
   "Outra",
 ];
@@ -108,8 +109,8 @@ export const papelFabricaOptions: string[] = [
 
 // Bloco 08 — Categoria prioritária para a produção de ração
 export const categoriaPrioritariaOptions: string[] = [
-  "Bois em terminação",
-  "Garrotes em recria",
+  "Animais em terminação",
+  "Garrotes/Garrotas em recria",
   "Vacas paridas / lactantes",
   "Novilhas de reposição",
   "Todas as categorias igualmente",
@@ -193,6 +194,7 @@ export const emptyFormState: FormState = {
   dispBagacoVinhaca: "",
   vinhacaUtilizada: "",
   suplementos: [],
+  planejamentoSuplemento: "",
   volumeSuplMes: 0,
   custoSuplemento: 0,
   fornecedorSuplemento: "",
@@ -311,6 +313,7 @@ export const defaultFormState: FormState = {
   dispBagacoVinhaca: "Sim, usinas a 30 km fornecem bagaço de cana no inverno.",
   vinhacaUtilizada: "Não",
   suplementos: ["sal_proteico", "milho_moido", "farelo_soja"],
+  planejamentoSuplemento: "Hoje dependemos de ração ensacada comercial; o gargalo é o custo por saca na seca e a falta de padronização da dosagem no cocho. A ideia da fábrica própria nasceu para reduzir esse custo e ganhar autonomia.",
   volumeSuplMes: 15,
   custoSuplemento: 28000,
   fornecedorSuplemento: "NutriNordeste e distribuidores em Parnamirim/RN",
@@ -341,7 +344,7 @@ export const defaultFormState: FormState = {
   metaSurgimento24: 550,
   metaSurgimento36: 750,
   confinamentoFuturo: "sim_semi",
-  categoriaPrioritaria: "Bois em terminação",
+  categoriaPrioritaria: "Animais em terminação",
   vocacaoPropriedade: "Ciclo completo (cria-recria-engorda)",
   papelFabricaRacao: "Ganhar autonomia / verticalizar a nutrição",
   visaoProprietario: "Reduzir a dependência de ração ensacada e ganhar margem por arroba.",

@@ -18,7 +18,6 @@ import { emptyFormState } from "./data.js";
 import FormBlocks from "./components/FormBlocks.jsx";
 import StrategicDashboard from "./components/StrategicDashboard.jsx";
 import ChatAssistant from "./components/ChatAssistant.jsx";
-import ImageGenerator from "./components/ImageGenerator.jsx";
 
 export default function App() {
   const [activeView, setActiveView] = useState<"form" | "dashboard">("form");
@@ -203,8 +202,8 @@ export default function App() {
         { name: "Vaca Solteira / Vazia", stateKey: "vacaSolteira" },
         { name: "Vaca Parida / Lactante", stateKey: "vacaParida" },
         { name: "Vaca Gestante (Seca)", stateKey: "vacaGestanteSeca" },
-        { name: "Garrote em Recria", stateKey: "garroteRecria" },
-        { name: "Boi em Terminação", stateKey: "boiTerminacao" },
+        { name: "Garrote/Garrota", stateKey: "garroteRecria" },
+        { name: "Animal em Terminação", stateKey: "boiTerminacao" },
         { name: "Touro", stateKey: "touro" },
       ];
 
@@ -216,6 +215,19 @@ export default function App() {
           doc.text(`${item.weight}`, 110, yPos);
           doc.text(`${item.imsCoef}%`, 145, yPos);
           const computedMs = item.heads * item.weight * (item.imsCoef / 100);
+          doc.text(`${computedMs.toFixed(1)}`, 175, yPos);
+          yPos += 6;
+        }
+      });
+
+      // Dynamic custom categories (Bloco 02)
+      (state.extraCategories || []).forEach((cat) => {
+        if (cat && cat.heads > 0 && yPos < 200) {
+          doc.text(`${cat.name || "Categoria adicional"}`, 18, yPos);
+          doc.text(`${cat.heads}`, 75, yPos);
+          doc.text(`${cat.weight}`, 110, yPos);
+          doc.text(`${cat.imsCoef}%`, 145, yPos);
+          const computedMs = cat.heads * cat.weight * (cat.imsCoef / 100);
           doc.text(`${computedMs.toFixed(1)}`, 175, yPos);
           yPos += 6;
         }
@@ -262,37 +274,66 @@ export default function App() {
       // Footer
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text("Fazenda Brasileira Augusta  |  Nísia Floresta, Rio Grande do Norte - RN", 15, 285);
-      doc.text("Página 1 / 2", 180, 285);
+      doc.text("Fazenda Brasileira Augusta  |  Litoral Sul de Natal, Rio Grande do Norte - RN", 15, 285);
+      doc.text("Página 1", 185, 285);
 
-      // PAGE 2: DETAILED GEMINI DIAGNOSTIC TEXT
+      // PAGE 2+: FULL LAUDO (espelho + análise por bloco + análise geral + referencial técnico)
       doc.addPage();
-      doc.setFillColor(30, 61, 47);
-      doc.rect(0, 0, 210, 15, "F");
 
-      doc.setTextColor(252, 251, 247);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("FAZENDA BRASILEIRA AUGUSTA  |  AVALIAÇÃO ESTRATÉGICA INTEGRADA", 15, 10);
+      const drawLaudoHeader = () => {
+        doc.setFillColor(30, 61, 47);
+        doc.rect(0, 0, 210, 15, "F");
+        doc.setTextColor(252, 251, 247);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text("FAZENDA BRASILEIRA AUGUSTA  |  LAUDO TÉCNICO INTEGRADO (PECUÁRIA)", 15, 10);
+      };
+      drawLaudoHeader();
 
       doc.setTextColor(30, 61, 47);
       doc.setFontSize(11);
-      doc.text("5. LAUDO COMPLETO E CONSULTORIA TÉCNICA ESTRATÉGICA", 15, 26);
+      doc.setFont("helvetica", "bold");
+      doc.text("5. LAUDO COMPLETO: ESPELHO, ANÁLISE E REFERENCIAL TÉCNICO", 15, 26);
 
-      // Output diagnostics text block
-      doc.setFont("times", "normal");
-      doc.setFontSize(10.5);
+      // Paginate the diagnostic text block (espelho + análise + referencial)
+      doc.setFont("courier", "normal");
+      doc.setFontSize(8.5);
       doc.setTextColor(40, 40, 40);
 
-      // Text wrap
-      const textLines = doc.splitTextToSize(sub.diagnostic, 180);
-      doc.text(textLines, 15, 34);
+      const laudoLines = doc.splitTextToSize(sub.diagnostic || "", 180);
+      const lineHeight = 4.2;
+      const topMargin = 33;
+      const bottomLimit = 280;
+      let y = topMargin;
+      let pageNum = 2;
 
+      laudoLines.forEach((ln: string) => {
+        if (y > bottomLimit) {
+          // footer of current page
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text("Fazenda Brasileira Augusta  |  Litoral Sul de Natal - RN", 15, 288);
+          doc.text(`Página ${pageNum}`, 185, 288);
+          // new page
+          doc.addPage();
+          pageNum += 1;
+          drawLaudoHeader();
+          doc.setFont("courier", "normal");
+          doc.setFontSize(8.5);
+          doc.setTextColor(40, 40, 40);
+          y = topMargin;
+        }
+        doc.text(ln, 15, y);
+        y += lineHeight;
+      });
+
+      // final footer
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text("Para dúvidas nutricionais detalhadas, utilize o Consultor FBA Inteligente em tempo real no nosso painel do produtor.", 15, 285);
-      doc.text("Página 2 / 2", 180, 285);
+      doc.text("Para dúvidas técnicas, utilize o Assistente IA - Consultor Fazenda Brasileira Augusta no painel.", 15, 288);
+      doc.text(`Página ${pageNum}`, 185, 288);
 
       // Save PDF to browser download trigger
       doc.save(`FBA_Relatorio_Dimensionamento_${state.nomeProdutor.replace(/\s+/g, "_")}.pdf`);
@@ -352,7 +393,7 @@ export default function App() {
                 FAZENDA BRASILEIRA AUGUSTA
               </h1>
               <p className="text-[10px] text-stone-100/80 font-mono tracking-widest uppercase">
-                Dimensionamento de Plantel &amp; Fábrica de Ração
+                Pecuária
               </p>
             </div>
           </div>
@@ -452,11 +493,7 @@ export default function App() {
               />
             </div>
 
-            <div className="lg:col-span-5 space-y-6">
-              {/* Image blueprint sketching pad */}
-              <ImageGenerator formState={formState} />
-
-              {/* Chat consultation assist */}
+            <div className="lg:col-span-5 space-y-6">              {/* Chat consultation assist */}
               <ChatAssistant formState={formState} />
             </div>
 
