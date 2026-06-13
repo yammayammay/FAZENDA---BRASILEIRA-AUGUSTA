@@ -11,17 +11,22 @@ import {
   Info,
   Layers,
   Clock,
-  Printer
+  Printer,
+  CalendarClock
 } from "lucide-react";
-import { FormState, Submission } from "./types.js";
-import { emptyFormState } from "./data.js";
+import { FormState, Submission, MonthlyFormState, MonthlyReport } from "./types.js";
+import { emptyFormState, emptyMonthlyState } from "./data.js";
 import FormBlocks from "./components/FormBlocks.jsx";
+import MonthlyForm from "./components/MonthlyForm.jsx";
 import StrategicDashboard from "./components/StrategicDashboard.jsx";
 import ChatAssistant from "./components/ChatAssistant.jsx";
 
 export default function App() {
-  const [activeView, setActiveView] = useState<"form" | "dashboard">("form");
+  const [activeView, setActiveView] = useState<"form" | "monthly" | "dashboard">("form");
   const [formState, setFormState] = useState<FormState>(emptyFormState);
+  const [monthlyState, setMonthlyState] = useState<MonthlyFormState>(emptyMonthlyState);
+  const [lastMonthly, setLastMonthly] = useState<MonthlyReport | null>(null);
+  const [generatingMonthly, setGeneratingMonthly] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -342,6 +347,116 @@ export default function App() {
     }
   };
 
+  // ===== Acompanhamento Mensal: PDF + .md + geração do relatório =====
+
+  const safeName = (s: string) => (s || "FBA").replace(/[^\wÀ-ÿ]+/g, "_");
+
+  const generateMonthlyPDF = (report: MonthlyReport) => {
+    try {
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const ref = report.formState.mesReferencia || "";
+
+      const drawHeader = (titulo: string) => {
+        doc.setFillColor(30, 61, 47);
+        doc.rect(0, 0, 210, 18, "F");
+        doc.setTextColor(252, 251, 247);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("FAZENDA BRASILEIRA AUGUSTA", 15, 9);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(217, 160, 91);
+        doc.text(titulo, 15, 14);
+      };
+
+      drawHeader(`RELATÓRIO MENSAL DE MANEJO  |  Referência: ${ref}`);
+
+      // Quadro de indicadores
+      const mx = report.metrics;
+      doc.setTextColor(30, 61, 47);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("INDICADORES DO MÊS", 15, 28);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      const ind: string[] = [
+        `Plantel: ${mx.plantelInicio} -> ${mx.plantelFim} cab.  |  Nascimentos: ${mx.nascimentos}  |  Mortes: ${mx.mortes} (${mx.taxaMortalidadePct}%)`,
+        `GMD medio ponderado: ${mx.gmdMedioPonderado} kg/dia`,
+        `Consumo suplemento/racao: ${mx.consumoSuplementoTonMes} ton  |  Volumoso: ${mx.consumoVolumosoTonMes} ton  |  Pasto (estimado, MS): ${mx.consumoPastoEstimadoTonMes} ton`,
+        `Custo operacional fixo: R$ ${mx.custoOperacionalFixo.toLocaleString("pt-BR")}  |  Custo total: R$ ${mx.custoTotal.toLocaleString("pt-BR")}`,
+        `Receita de vendas: R$ ${mx.receitaVendas.toLocaleString("pt-BR")}  |  Aquisicao: R$ ${mx.custoAquisicao.toLocaleString("pt-BR")}  |  Resultado do mes: R$ ${mx.resultadoMes.toLocaleString("pt-BR")}`,
+      ];
+      let yy = 34;
+      ind.forEach((l) => { doc.text(doc.splitTextToSize(l, 180), 15, yy); yy += 6; });
+
+      // Corpo do laudo (espelho + analise + referencial) paginado
+      doc.setFont("courier", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(40, 40, 40);
+      const lines = doc.splitTextToSize(report.diagnostic || "", 180);
+      let y = yy + 4;
+      let page = 1;
+      lines.forEach((ln: string) => {
+        if (y > 282) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+          doc.text(`Pagina ${page}`, 185, 290);
+          doc.addPage(); page += 1; drawHeader(`RELATÓRIO MENSAL DE MANEJO  |  Referência: ${ref}`);
+          doc.setFont("courier", "normal"); doc.setFontSize(8.5); doc.setTextColor(40, 40, 40);
+          y = 26;
+        }
+        doc.text(ln, 15, y); y += 4.2;
+      });
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+      doc.text(`Pagina ${page}`, 185, 290);
+
+      doc.save(`FBA_Relatorio_Mensal_${safeName(ref)}.pdf`);
+    } catch (e) {
+      console.error("Monthly PDF generator failed:", e);
+    }
+  };
+
+  const downloadMarkdown = (report: MonthlyReport) => {
+    try {
+      const ref = report.formState.mesReferencia || "";
+      const md = `# Relatório Mensal de Manejo — Fazenda Brasileira Augusta\n\n**Referência:** ${ref}\n**Gerado em:** ${new Date(report.timestamp).toLocaleString("pt-BR")}\n\n> Arquivo destinado a análise posterior por uma IA/LLM. Contém o espelho fiel do formulário, o diagnóstico técnico e o referencial.\n\n\`\`\`\n${report.diagnostic}\n\`\`\`\n`;
+      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `FBA_Relatorio_Mensal_${safeName(ref)}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Markdown download failed:", e);
+    }
+  };
+
+  const handleGenerateMonthly = async () => {
+    setGeneratingMonthly(true);
+    try {
+      const response = await fetch("/api/monthly", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(monthlyState),
+      });
+      if (!response.ok) throw new Error("Falha ao gerar o relatório mensal.");
+      const report: MonthlyReport = await response.json();
+      setLastMonthly(report);
+      // Download automático dos dois formatos
+      generateMonthlyPDF(report);
+      downloadMarkdown(report);
+      showToast("Relatório mensal gerado! PDF e .md baixados automaticamente.");
+    } catch (err) {
+      console.error(err);
+      showToast("Não foi possível gerar o relatório mensal. Tente novamente.");
+    } finally {
+      setGeneratingMonthly(false);
+    }
+  };
+
   // Re-run standard in-memory metrics calculation client side to display reactively
   const calculateCurrentLiveMetrics = () => {
     let heads = 0;
@@ -408,7 +523,18 @@ export default function App() {
               }`}
             >
               <ClipboardList className="w-4 h-4" />
-              <span>Questionário Lançar</span>
+              <span>Diagnóstico Inicial</span>
+            </button>
+            <button
+              onClick={() => setActiveView("monthly")}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-sm text-xs font-bold transition-all uppercase tracking-wider cursor-pointer ${
+                activeView === "monthly"
+                  ? "bg-accent text-white shadow-md"
+                  : "text-stone-200 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <CalendarClock className="w-4 h-4" />
+              <span>Acompanhamento Mensal</span>
             </button>
             <button
               onClick={() => {
@@ -498,6 +624,21 @@ export default function App() {
             </div>
 
           </div>
+        ) : activeView === "monthly" ? (
+          /* Monthly tracking tab: form left / AI assistant right */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <MonthlyForm
+                monthlyState={monthlyState}
+                onChange={setMonthlyState}
+                onGenerate={handleGenerateMonthly}
+                generating={generatingMonthly}
+              />
+            </div>
+            <div className="lg:col-span-5 space-y-6">
+              <ChatAssistant formState={formState} />
+            </div>
+          </div>
         ) : (
           /* Executive dashboard view tab */
           <StrategicDashboard
@@ -505,6 +646,8 @@ export default function App() {
             selectedSubmission={selectedSubmission}
             onSelectSubmission={setSelectedSubmission}
             downloadPDF={generateAndDownloadPDF}
+            lastMonthly={lastMonthly}
+            downloadMonthlyPDF={generateMonthlyPDF}
           />
         )}
 

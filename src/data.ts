@@ -357,3 +357,129 @@ export const defaultFormState: FormState = {
   expectativasGerais: "Cortar a dependência de rações comerciais ensacadas e moer milho próprio.",
   contextoReal: "Operação familiar em transição; pastagem arenosa exige volumoso de cocho na seca.",
 };
+
+// ===================== ACOMPANHAMENTO MENSAL =====================
+import { MonthlyFormState, MonthlyCategory } from "./types.js";
+
+export const monthlyCategoryLabels: Record<string, string> = {
+  aleitamento: "Bezerros(as) em Aleitamento (cria)",
+  desmamados: "Bezerros(as) Desmamados(as)",
+  recria: "Recria (Garrotes/Garrotas)",
+  engordaTerminacao: "Engorda / Terminação",
+  vacasCria: "Vacas de Cria (Matrizes)",
+  reprodutores: "Reprodutores (Touros)",
+  resguardoEnfermaria: "Resguardo / Enfermaria",
+};
+
+export const condicaoPastoOptions: string[] = [
+  "Excelente — pasto cheio e vigoroso",
+  "Bom — oferta adequada",
+  "Regular — começando a faltar",
+  "Ruim — déficit de forragem",
+  "Crítico — pasto esgotado",
+];
+
+const emptyCat = (): MonthlyCategory => ({
+  inicio: 0, nascimentos: 0, mortes: 0, compras: 0, vendas: 0,
+  transferencias: 0, pesoMedioAnterior: 0, pesoMedioAtual: 0,
+});
+
+const buildCats = (filler?: Partial<Record<string, MonthlyCategory>>): Record<string, MonthlyCategory> => {
+  const obj: Record<string, MonthlyCategory> = {};
+  Object.keys(monthlyCategoryLabels).forEach((k) => { obj[k] = (filler && filler[k]) ? filler[k]! : emptyCat(); });
+  return obj;
+};
+
+// Formulário mensal EM BRANCO (estado inicial entregue ao responsável)
+export const emptyMonthlyState: MonthlyFormState = {
+  mesReferencia: "",
+  dataPreenchimento: "",
+  responsavelNome: "",
+  responsavelCargo: "",
+  categorias: buildCats(),
+  doencasOcorridas: "",
+  numAnimaisDoentes: 0,
+  acidentes: "",
+  mortesCausas: "",
+  vacinacoesVermifugacoes: "",
+  prevencaoSazonal: "",
+  condicaoPasto: "",
+  alturaPastoCm: 0,
+  metodoManejoPasto: "",
+  controleEntradaSaida: "",
+  piquetesUso: 0,
+  piquetesDescanso: 0,
+  pluviometriaMm: 0,
+  pragasInvasoras: "",
+  correcaoAdubacao: "",
+  volumosoTipo: "",
+  volumosoQtdTonMes: 0,
+  volumosoCustoMes: 0,
+  suplementoTipo: "",
+  suplementoQtdTonMes: 0,
+  suplementoCustoMes: 0,
+  mudancasDieta: "",
+  comprasNum: 0,
+  comprasPesoMedio: 0,
+  comprasValorTotal: 0,
+  vendasNum: 0,
+  vendasArrobasTotal: 0,
+  vendasValorTotal: 0,
+  vendasCustoComercializacao: 0,
+  custoMaoDeObra: 0,
+  custoSanidade: 0,
+  custoInsumos: 0,
+  custoOutros: 0,
+  observacoesGargalos: "",
+};
+
+// Estado de DEMONSTRAÇÃO com dados fictícios — usado apenas para testes/validação.
+export const demoMonthlyState: MonthlyFormState = {
+  mesReferencia: "Maio/2026",
+  dataPreenchimento: "2026-05-31",
+  responsavelNome: "José Carlos Ferreira",
+  responsavelCargo: "Gerente de Manejo",
+  categorias: buildCats({
+    aleitamento: { inicio: 40, nascimentos: 8, mortes: 1, compras: 0, vendas: 0, transferencias: -6, pesoMedioAnterior: 70, pesoMedioAtual: 88 },
+    desmamados: { inicio: 50, nascimentos: 0, mortes: 0, compras: 0, vendas: 0, transferencias: 6, pesoMedioAnterior: 155, pesoMedioAtual: 172 },
+    recria: { inicio: 60, nascimentos: 0, mortes: 1, compras: 0, vendas: 0, transferencias: 0, pesoMedioAnterior: 310, pesoMedioAtual: 332 },
+    engordaTerminacao: { inicio: 110, nascimentos: 0, mortes: 0, compras: 0, vendas: 20, transferencias: 0, pesoMedioAnterior: 410, pesoMedioAtual: 445 },
+    vacasCria: { inicio: 130, nascimentos: 0, mortes: 1, compras: 0, vendas: 3, transferencias: 0, pesoMedioAnterior: 475, pesoMedioAtual: 470 },
+    reprodutores: { inicio: 3, nascimentos: 0, mortes: 0, compras: 0, vendas: 0, transferencias: 0, pesoMedioAnterior: 750, pesoMedioAtual: 752 },
+    resguardoEnfermaria: { inicio: 2, nascimentos: 0, mortes: 0, compras: 0, vendas: 0, transferencias: 0, pesoMedioAnterior: 380, pesoMedioAtual: 392 },
+  }),
+  doencasOcorridas: "3 casos de miíase (bicheira) e 2 de tristeza parasitária bovina.",
+  numAnimaisDoentes: 5,
+  acidentes: "1 garrote com corte em cerca, tratado no local.",
+  mortesCausas: "1 bezerro (diarreia neonatal), 1 garrote (acidente), 1 vaca (parto distócico).",
+  vacinacoesVermifugacoes: "Vermifugação estratégica de toda a recria; reforço de clostridioses nos bezerros.",
+  prevencaoSazonal: "Controle de mosca-do-chifre e carrapato no início das chuvas.",
+  condicaoPasto: "Bom — oferta adequada",
+  alturaPastoCm: 28,
+  metodoManejoPasto: "Rotacionado",
+  controleEntradaSaida: "Régua de manejo de pasto",
+  piquetesUso: 4,
+  piquetesDescanso: 2,
+  pluviometriaMm: 95,
+  pragasInvasoras: "Cigarrinha-das-pastagens em dois piquetes.",
+  correcaoAdubacao: "Adubação nitrogenada de cobertura em 12 ha.",
+  volumosoTipo: "Silagem de milho",
+  volumosoQtdTonMes: 90,
+  volumosoCustoMes: 14500,
+  suplementoTipo: "Proteinado + milho moído",
+  suplementoQtdTonMes: 15,
+  suplementoCustoMes: 28000,
+  mudancasDieta: "Aumento do concentrado para o lote de terminação que será vendido.",
+  comprasNum: 0,
+  comprasPesoMedio: 0,
+  comprasValorTotal: 0,
+  vendasNum: 23,
+  vendasArrobasTotal: 322,
+  vendasValorTotal: 90804,
+  vendasCustoComercializacao: 4255,
+  custoMaoDeObra: 8800,
+  custoSanidade: 2800,
+  custoInsumos: 3500,
+  custoOutros: 2000,
+  observacoesGargalos: "Déficit de pasto previsto para os próximos meses secos; precisamos antecipar a compra de volumoso.",
+};

@@ -182,3 +182,97 @@ export interface ChatMessage {
   timestamp: string;
   thinking?: string; // Shows Gemini chain-of-thought
 }
+
+// ===================== ACOMPANHAMENTO MENSAL =====================
+
+// Movimentação e desempenho de uma categoria do plantel no mês
+export interface MonthlyCategory {
+  inicio: number;          // nº de cabeças no início do mês
+  nascimentos: number;     // entradas por nascimento
+  mortes: number;          // baixas por morte
+  compras: number;         // entradas por aquisição
+  vendas: number;          // saídas por venda
+  transferencias: number;  // saldo de mudança de categoria: entradas(+) / saídas(-)
+  pesoMedioAnterior: number; // kg (mês anterior) — base para o GMD
+  pesoMedioAtual: number;    // kg (mês atual)
+}
+
+export interface MonthlyFormState {
+  // 1. Identificação do registro
+  mesReferencia: string;     // ex.: "Maio/2026"
+  dataPreenchimento: string; // ex.: "2026-05-31"
+  responsavelNome: string;
+  responsavelCargo: string;
+
+  // 2. Dinâmica do plantel (por categoria)
+  categorias: Record<string, MonthlyCategory>;
+
+  // 3. Sanidade
+  doencasOcorridas: string;
+  numAnimaisDoentes: number;
+  acidentes: string;
+  mortesCausas: string;
+  vacinacoesVermifugacoes: string;
+  prevencaoSazonal: string;
+
+  // 4. Pasto e clima
+  condicaoPasto: string;       // select
+  alturaPastoCm: number;
+  metodoManejoPasto: string;   // select (reaproveita sistema de pastejo)
+  controleEntradaSaida: string;
+  piquetesUso: number;
+  piquetesDescanso: number;
+  pluviometriaMm: number;
+  pragasInvasoras: string;
+  correcaoAdubacao: string;
+
+  // 5. Dieta e suplementação
+  volumosoTipo: string;
+  volumosoQtdTonMes: number;
+  volumosoCustoMes: number;
+  suplementoTipo: string;
+  suplementoQtdTonMes: number;
+  suplementoCustoMes: number;
+  mudancasDieta: string;
+
+  // 6. Comercial e custos
+  comprasNum: number;
+  comprasPesoMedio: number;     // kg/cab
+  comprasValorTotal: number;    // R$
+  vendasNum: number;
+  vendasArrobasTotal: number;   // @ vendidas no total
+  vendasValorTotal: number;     // R$
+  vendasCustoComercializacao: number; // R$ total (frete, comissões, taxas)
+  custoMaoDeObra: number;       // R$/mês
+  custoSanidade: number;        // R$/mês
+  custoInsumos: number;         // R$/mês
+  custoOutros: number;          // R$/mês
+
+  // 7. Observações
+  observacoesGargalos: string;
+}
+
+export interface MonthlyReport {
+  id: string;
+  timestamp: string;
+  formState: MonthlyFormState;
+  metrics: {
+    plantelInicio: number;
+    plantelFim: number;
+    nascimentos: number;
+    mortes: number;
+    taxaMortalidadePct: number;
+    comprasTotal: number;
+    vendasTotal: number;
+    gmdMedioPonderado: number;        // kg/dia
+    consumoSuplementoTonMes: number;
+    consumoVolumosoTonMes: number;
+    consumoPastoEstimadoTonMes: number; // estimativa (MS)
+    custoOperacionalFixo: number;     // R$
+    custoTotal: number;               // R$
+    receitaVendas: number;            // R$
+    custoAquisicao: number;           // R$
+    resultadoMes: number;             // R$ (receita - custos do mês)
+  };
+  diagnostic: string; // espelho + análise + referencial
+}
