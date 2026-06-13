@@ -9,7 +9,7 @@ interface ChatAssistantProps {
 export default function ChatAssistant({ formState }: ChatAssistantProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gemini-3.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
   const [thinkingLevel, setThinkingLevel] = useState<"low" | "high">("low");
   const [loading, setLoading] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
@@ -112,8 +112,8 @@ Estou integrado em tempo real com as informações do seu questionário da **Faz
             <Sparkles className="w-5 h-5 text-accent-light" />
           </div>
           <div>
-            <h3 className="font-serif font-bold text-white text-base leading-tight">Consultor FBA Inteligente</h3>
-            <span className="text-[10px] text-stone-300 font-mono">Gemini GenAI Pilot v3</span>
+            <h3 className="font-serif font-bold text-white text-base leading-tight">Assistente IA - Consultor Fazenda Brasileira Augusta</h3>
+            <span className="text-[10px] text-stone-300 font-mono">Especialista Sênior • Zootecnia & Manejo de Pasto</span>
           </div>
         </div>
 
@@ -140,12 +140,12 @@ Estou integrado em tempo real com as informações do seu questionário da **Faz
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="w-full text-xs p-1.5 rounded-sm border border-stone-300 bg-white"
               >
-                <option value="gemini-3.5-flash">gemini-3.5-flash (Rápido)</option>
-                <option value="gemini-3.1-pro-preview">gemini-3.1-pro (Tático Pro)</option>
-                <option value="gemini-3.1-flash-lite">gemini-3.1-lite (Básico)</option>
+                <option value="gemini-2.5-flash">gemini-2.5-flash (Rápido)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro (Tático Pro)</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash (Básico)</option>
               </select>
             </div>
-            {selectedModel === "gemini-3.1-pro-preview" && (
+            {selectedModel === "gemini-2.5-pro" && (
               <div>
                 <label className="block text-[10px] text-stone-500 font-mono mb-1">NÍVEL DE RACIOCÍNIO</label>
                 <select
