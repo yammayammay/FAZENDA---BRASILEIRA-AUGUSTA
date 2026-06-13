@@ -169,7 +169,7 @@ Estou integrado em tempo real com as informações do seu questionário da **Faz
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-50/50">
         {messages.map((m) => (
           <div key={m.id} className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}>
-            <span className="text-[9px] text-stone-400 mb-1 font-mono px-1">{m.sender === "user" ? "Você" : "Consultor FBA"} • {m.timestamp}</span>
+            <span className="text-[9px] text-stone-400 mb-1 font-mono px-1">{m.sender === "user" ? "Você" : "Assistente IA"} • {m.timestamp}</span>
             
             {m.thinking && (
               <div className="mb-2 max-w-[85%] bg-accent/5 border-l-2 border-accent p-2 rounded-sm text-[10px] font-mono text-stone-600 italic">
@@ -191,7 +191,7 @@ Estou integrado em tempo real com as informações do seu questionário da **Faz
 
         {loading && (
           <div className="flex flex-col items-start">
-            <span className="text-[9px] text-stone-400 mb-1 font-mono">Consultor FBA • Processando...</span>
+            <span className="text-[9px] text-stone-400 mb-1 font-mono">Assistente IA • Processando...</span>
             <div className="p-3 bg-white border border-stone-100 rounded-sm rounded-tl-none flex items-center gap-2">
               <span className="flex gap-1 h-2 items-center">
                 <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

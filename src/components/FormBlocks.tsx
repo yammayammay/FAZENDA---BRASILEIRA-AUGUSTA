@@ -4,7 +4,7 @@ import {
   Scale,
   TrendingUp,
   DollarSign,
-  Coffee,
+  Sprout,
   PiggyBank,
   Wrench,
   Compass,
@@ -159,7 +159,7 @@ export default function FormBlocks({
           </div>
           <div>
             <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 01: Identificação e Referência</h3>
-            <span className="text-[10px] text-stone-500 font-mono">Dados cadastrais do gestor e do rebanho</span>
+            <span className="text-[10px] text-stone-500 font-mono">Identificação do preenchedor do formulário</span>
           </div>
         </div>
 
@@ -422,7 +422,7 @@ export default function FormBlocks({
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-stone-500 font-mono">Garrotes recria *</label>
+                <label className="block text-[10px] text-stone-500 font-mono">Garrote/Garrota *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -433,7 +433,7 @@ export default function FormBlocks({
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-stone-500 font-mono">Bois terminação *</label>
+                <label className="block text-[10px] text-stone-500 font-mono">Animal em terminação *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -711,7 +711,7 @@ export default function FormBlocks({
       <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 shadow-sm space-y-6" id="form-bloco-05">
         <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
           <div className="p-1 bg-primary/10 rounded-lg text-primary">
-            <Coffee className="w-5 h-5 text-primary" />
+            <Sprout className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 05: Dieta Atual - Fontes Nutricionais e Volumes</h3>
@@ -932,16 +932,6 @@ export default function FormBlocks({
                   className="w-full text-xs p-2 rounded-lg border border-stone-300 font-mono text-center"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] text-stone-600 font-medium mb-1">Disponibilidade residual da usinas vizinhas?</label>
-                <input
-                  type="text"
-                  value={formState.dispBagacoVinhaca}
-                  onChange={(e) => handleSimpleFieldChange("dispBagacoVinhaca", e.target.value)}
-                  className="w-full text-xs p-2 rounded-lg border border-stone-300"
-                  placeholder="Ex: Sim, bagaço de usinas locais"
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -1042,6 +1032,20 @@ export default function FormBlocks({
             onChange={(e) => handleSimpleFieldChange("rotinaAlimentacao", e.target.value)}
             className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
             placeholder="Ex: Vaqueiros colocam de manhã e de tarde nos cochos de madeira dos piquetes..."
+          />
+        </div>
+
+        <div className="bg-cream/60 p-4 rounded-xl border-l-4 border-accent space-y-1">
+          <label className="block text-[11px] text-stone-700 font-semibold mb-1">Informações gerais, gargalos e planejamento estratégico sobre o fornecimento de suplemento/ração</label>
+          <p className="text-[9px] text-stone-500 leading-snug mb-1">
+            Este é o tema central do diagnóstico — a ideia de produzir ração na própria propriedade nasceu daqui. Descreva com liberdade: o que falta hoje, onde o custo aperta, dependência de fornecedor, sazonalidade, dificuldades de dosagem/mistura, planos e o que você espera resolver com a produção própria.
+          </p>
+          <textarea
+            rows={4}
+            value={formState.planejamentoSuplemento || ""}
+            onChange={(e) => handleSimpleFieldChange("planejamentoSuplemento", e.target.value)}
+            className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
+            placeholder="Ex: Hoje compramos ração ensacada e o custo na seca inviabiliza terminar o lote; queremos moer milho próprio e padronizar a dosagem no cocho..."
           />
         </div>
       </div>
