@@ -3,6 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import pg from "pg";
 import { FormState, Submission, MonthlyFormState, MonthlyReport } from "./src/types.js";
 
 // Load environment variables
@@ -13,10 +14,70 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
-// In-memory store (NÃO persistente — reinicia a cada restart do servidor).
-// O registro permanente são os arquivos PDF/.md baixados pelo usuário.
+// In-memory store (camada de redundância rápida; reinicia a cada restart).
 const submissions: Submission[] = [];
 let lastMonthlyReport: MonthlyReport | null = null;
+
+// ===================== PERSISTÊNCIA (Opção B — Postgres opcional) =====================
+const { Pool } = pg;
+const dbPool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 3 })
+  : null;
+let dbReady = false;
+
+async function initDb() {
+  if (!dbPool) {
+    console.log("[DB] DATABASE_URL ausente — persistência em banco desativada (usando memória + localStorage).");
+    return;
+  }
+  try {
+    await dbPool.query(
+      `CREATE TABLE IF NOT EXISTS reports (
+         kind TEXT PRIMARY KEY,
+         payload JSONB NOT NULL,
+         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`
+    );
+    dbReady = true;
+    console.log("[DB] Conectado e tabela 'reports' pronta. Persistência em banco ATIVA.");
+  } catch (e) {
+    console.error("[DB] Falha ao inicializar o banco — seguindo só com memória + localStorage:", e);
+    dbReady = false;
+  }
+}
+
+async function saveReport(kind: "diagnostic" | "monthly", payload: any) {
+  if (!dbPool || !dbReady) return;
+  try {
+    await dbPool.query(
+      `INSERT INTO reports (kind, payload, updated_at) VALUES ($1, $2, now())
+       ON CONFLICT (kind) DO UPDATE SET payload = EXCLUDED.payload, updated_at = now()`,
+      [kind, JSON.stringify(payload)]
+    );
+  } catch (e) {
+    console.error(`[DB] Falha ao salvar relatório '${kind}':`, e);
+  }
+}
+
+async function loadReport(kind: "diagnostic" | "monthly"): Promise<any | null> {
+  if (!dbPool || !dbReady) return null;
+  try {
+    const r = await dbPool.query("SELECT payload FROM reports WHERE kind = $1", [kind]);
+    return r.rows.length ? r.rows[0].payload : null;
+  } catch (e) {
+    console.error(`[DB] Falha ao ler relatório '${kind}':`, e);
+    return null;
+  }
+}
+
+async function deleteReport(kind: "diagnostic" | "monthly") {
+  if (!dbPool || !dbReady) return;
+  try {
+    await dbPool.query("DELETE FROM reports WHERE kind = $1", [kind]);
+  } catch (e) {
+    console.error(`[DB] Falha ao apagar relatório '${kind}':`, e);
+  }
+}
 
 // Helper to initialize custom server-side Gemini client safely (failsafe fallback if API key missing)
 function getGeminiClient(): GoogleGenAI | null {
@@ -348,7 +409,11 @@ function buildOfflineAnalysis(f: FormState, m: any): string {
 
 
 // 1. ENDPOINT: Get list of all form submissions
-app.get("/api/submissions", (req, res) => {
+app.get("/api/submissions", async (req, res) => {
+  if (submissions.length === 0) {
+    const persisted = await loadReport("diagnostic");
+    if (persisted) return res.json([persisted]);
+  }
   res.json(submissions);
 });
 
@@ -501,6 +566,7 @@ Diagnóstico integrado: dimensionamento e tipo de misturador recomendado (Vertic
     };
 
     submissions.unshift(newSubmission);
+    await saveReport("diagnostic", newSubmission);
     res.json(newSubmission);
   } catch (error: any) {
     console.error("Error creating submission:", error);
@@ -950,6 +1016,7 @@ Custo fixo, custo total, e — havendo venda/compra — receita, custo e resulta
 
     const report: MonthlyReport = { id, timestamp: new Date().toISOString(), formState: m, metrics, diagnostic };
     lastMonthlyReport = report;
+    await saveReport("monthly", report);
     res.json(report);
   } catch (error: any) {
     console.error("Error creating monthly report:", error);
@@ -958,12 +1025,35 @@ Custo fixo, custo total, e — havendo venda/compra — receita, custo e resulta
 });
 
 // ENDPOINT: último relatório mensal (para o Painel do Dono)
-app.get("/api/monthly/last", (req, res) => {
-  res.json(lastMonthlyReport);
+app.get("/api/monthly/last", async (req, res) => {
+  if (lastMonthlyReport) return res.json(lastMonthlyReport);
+  const persisted = await loadReport("monthly");
+  res.json(persisted || null);
+});
+
+// ENDPOINT: status de armazenamento (para o selo "onde está salvo")
+app.get("/api/storage-status", (req, res) => {
+  res.json({ dbActive: dbReady });
+});
+
+// ENDPOINT: limpar o último registro de um tipo (memória + banco)
+app.delete("/api/reports/:kind", async (req, res) => {
+  const kind = req.params.kind;
+  if (kind !== "diagnostic" && kind !== "monthly") {
+    return res.status(400).json({ error: "kind inválido" });
+  }
+  if (kind === "diagnostic") {
+    submissions.length = 0;
+  } else {
+    lastMonthlyReport = null;
+  }
+  await deleteReport(kind);
+  res.json({ ok: true, cleared: kind });
 });
 
 // Serve frontend assets in production or mount dev server in development
 async function startServer() {
+  await initDb();
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
