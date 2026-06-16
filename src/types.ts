@@ -15,6 +15,7 @@ export interface EquipmentInfo {
   possui: boolean;
   status: string; // e.g. 'Excelente', 'Mapeado', 'Danificado', 'Inexistente'
   capacidade: string;
+  especificacoes?: string;
   obs: string;
 }
 
@@ -91,6 +92,8 @@ export interface FormState {
   tecnicasManejo?: string; // técnicas de manejo de pasto adotadas (Bloco 05A)
   capimTipo?: string; // especificação do tipo de capim como volumoso (Bloco 05B)
   numPiquetes: number;
+  tamanhoMedioPiqueteHa?: number;
+  infoPiquetes?: string;
   adubacaoPastagem: boolean;
   custoMensalPastagem: number;
 
@@ -108,6 +111,7 @@ export interface FormState {
   distanciaFornecedor: number;
   frequenciaFornecimento: string;
   rotinaAlimentacao: string;
+  responsavelDieta?: string;
 
   // Bloco 06 - Custo Total
   custoNaoAlimentacao: number;
@@ -162,6 +166,7 @@ export interface Submission {
     totalMsDia: number; // kg MS
     totalMsMes: number; // kg MS
     totalMonthlyFeedCost: number; // R$
+    custoOperacionalFixo: number; // R$ (Bloco 06 — não alimentação)
     costPerAnimalMonth: number; // R$
     suggestedMixerCapacityKg: number; // based on daily MS and mixing batch sizes
     suggestedSiloVolumeM3: number; // based on monthly volume
