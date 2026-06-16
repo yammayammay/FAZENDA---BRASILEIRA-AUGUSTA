@@ -140,7 +140,7 @@ const EQUIP_LABELS: Record<string, string> = {
   moinho: "Moinho/Triturador",
   trator: "Trator",
   deposito: "Depósito/Galpão",
-  balancaPesagem: "Balança de Pesagem de Fluxo",
+  balancaPesagem: "Balança de Pesagem de Insumos / Ração",
   bombaTransferencia: "Bomba de Transferência",
 };
 
@@ -212,6 +212,8 @@ function buildFormMirror(f: FormState, m: any): string {
   line("Pragas mais comuns", f.pragasComuns);
   line("Técnicas de manejo de pasto", f.tecnicasManejo);
   line("Nº de piquetes", f.numPiquetes);
+  line("Tamanho médio do piquete (ha)", f.tamanhoMedioPiqueteHa);
+  line("Piquetes — ocupação/descanso", f.infoPiquetes);
   line("Custo mensal de pastagem (R$)", f.custoMensalPastagem);
   line("Volumosos complementares", (f.volumosos || []).join(", ") + (f.capimTipo ? ` | Capim: ${f.capimTipo}` : ""));
   line("Volume de volumoso (ton/mês)", f.volumeMesVolumoso);
@@ -223,6 +225,7 @@ function buildFormMirror(f: FormState, m: any): string {
   line("Distância do fornecedor (km)", f.distanciaFornecedor);
   line("Frequência de fornecimento", f.frequenciaFornecimento);
   line("Rotina de alimentação", f.rotinaAlimentacao);
+  line("Quem elabora/calcula a dieta", f.responsavelDieta);
   line("Planejamento estratégico de suplemento/ração", f.planejamentoSuplemento);
 
   L.push("\nBLOCO 06 — CUSTOS OPERACIONAIS");
@@ -235,7 +238,7 @@ function buildFormMirror(f: FormState, m: any): string {
   L.push("\nBLOCO 07 — INFRAESTRUTURA EXISTENTE (EQUIPAMENTOS E INSTALAÇÕES)");
   Object.keys(EQUIP_LABELS).forEach((k) => {
     const e: any = (f.equipments as any)[k];
-    if (e) line(EQUIP_LABELS[k], e.possui ? `Possui — ${e.status}${e.capacidade ? " | " + e.capacidade : ""}${e.obs ? " | " + e.obs : ""}` : "Não possui");
+    if (e) line(EQUIP_LABELS[k], e.possui ? `Possui — ${e.status}${e.capacidade ? " | Cap.: " + e.capacidade : ""}${e.especificacoes ? " | Esp.: " + e.especificacoes : ""}${e.obs ? " | Obs.: " + e.obs : ""}` : "Não possui");
   });
   line("Terreno disponível", f.terrenoDisponivel);
   line("Energia trifásica", f.energiaTrifasica);
