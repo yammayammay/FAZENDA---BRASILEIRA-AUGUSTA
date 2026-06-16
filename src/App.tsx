@@ -26,6 +26,9 @@ export default function App() {
   const [formState, setFormState] = useState<FormState>(emptyFormState);
   const [monthlyState, setMonthlyState] = useState<MonthlyFormState>(emptyMonthlyState);
   const [lastMonthly, setLastMonthly] = useState<MonthlyReport | null>(null);
+  const [dbActive, setDbActive] = useState(false);
+  const [diagBrowserSaved, setDiagBrowserSaved] = useState(false);
+  const [monthlyBrowserSaved, setMonthlyBrowserSaved] = useState(false);
   const [generatingMonthly, setGeneratingMonthly] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -33,23 +36,72 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load submissions from the backend on mount
+  const LS_DIAG = "fba_last_diagnostic";
+  const LS_MONTHLY = "fba_last_monthly";
+
   useEffect(() => {
-    fetchSubmissions();
+    hydrateLastReports();
   }, []);
 
-  const fetchSubmissions = async () => {
+  // Redundância A+B: servidor (memória/banco) primeiro; se nada vier, usa o localStorage.
+  const hydrateLastReports = async () => {
+    // status de armazenamento (para o selo)
+    try {
+      const st = await fetch("/api/storage-status");
+      if (st.ok) { const s = await st.json(); setDbActive(!!s.dbActive); }
+    } catch { /* ignore */ }
+
+    // diagnóstico
+    let gotDiag = false;
     try {
       const response = await fetch("/api/submissions");
       if (response.ok) {
         const data = await response.json();
-        setSubmissions(data);
-        if (data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
+          setSubmissions(data);
           setSelectedSubmission(data[0]);
+          gotDiag = true;
         }
       }
-    } catch (e) {
-      console.error("Failed to load historical database submissions:", e);
-    }
+    } catch (e) { console.error("Falha ao carregar diagnóstico do servidor:", e); }
+    try {
+      if (localStorage.getItem(LS_DIAG)) {
+        setDiagBrowserSaved(true);
+        if (!gotDiag) {
+          const sub: Submission = JSON.parse(localStorage.getItem(LS_DIAG) as string);
+          setSubmissions([sub]); setSelectedSubmission(sub);
+        }
+      }
+    } catch (e) { console.error("localStorage diag:", e); }
+
+    // mensal
+    let gotMonthly = false;
+    try {
+      const r = await fetch("/api/monthly/last");
+      if (r.ok) { const data = await r.json(); if (data) { setLastMonthly(data); gotMonthly = true; } }
+    } catch (e) { console.error("Falha ao carregar mensal do servidor:", e); }
+    try {
+      if (localStorage.getItem(LS_MONTHLY)) {
+        setMonthlyBrowserSaved(true);
+        if (!gotMonthly) setLastMonthly(JSON.parse(localStorage.getItem(LS_MONTHLY) as string));
+      }
+    } catch (e) { console.error("localStorage monthly:", e); }
+  };
+
+  const handleClearDiagnostic = async () => {
+    if (!window.confirm("Limpar o último DIAGNÓSTICO salvo (navegador e banco)? Use apenas se for gerar um novo.")) return;
+    try { await fetch("/api/reports/diagnostic", { method: "DELETE" }); } catch (e) { console.error(e); }
+    try { localStorage.removeItem(LS_DIAG); } catch (e) { console.error(e); }
+    setSubmissions([]); setSelectedSubmission(null); setDiagBrowserSaved(false);
+    showToast("Último diagnóstico limpo. Gere um novo para registrar.");
+  };
+
+  const handleClearMonthly = async () => {
+    if (!window.confirm("Limpar o último ACOMPANHAMENTO MENSAL salvo (navegador e banco)? Use apenas se for gerar um novo.")) return;
+    try { await fetch("/api/reports/monthly", { method: "DELETE" }); } catch (e) { console.error(e); }
+    try { localStorage.removeItem(LS_MONTHLY); } catch (e) { console.error(e); }
+    setLastMonthly(null); setMonthlyBrowserSaved(false);
+    showToast("Último acompanhamento mensal limpo. Gere um novo para registrar.");
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -72,6 +124,7 @@ export default function App() {
       // Update local storage state
       setSubmissions((prev) => [newSub, ...prev]);
       setSelectedSubmission(newSub);
+      try { localStorage.setItem(LS_DIAG, JSON.stringify(newSub)); setDiagBrowserSaved(true); } catch (e) { console.error(e); }
       
       // Fire client side PDF generation & download immediately!
       generateAndDownloadPDF(newSub);
@@ -445,6 +498,7 @@ export default function App() {
       if (!response.ok) throw new Error("Falha ao gerar o relatório mensal.");
       const report: MonthlyReport = await response.json();
       setLastMonthly(report);
+      try { localStorage.setItem(LS_MONTHLY, JSON.stringify(report)); setMonthlyBrowserSaved(true); } catch (e) { console.error(e); }
       // Download automático dos dois formatos
       generateMonthlyPDF(report);
       downloadMarkdown(report);
@@ -648,6 +702,11 @@ export default function App() {
             downloadPDF={generateAndDownloadPDF}
             lastMonthly={lastMonthly}
             downloadMonthlyPDF={generateMonthlyPDF}
+            dbActive={dbActive}
+            diagBrowserSaved={diagBrowserSaved}
+            monthlyBrowserSaved={monthlyBrowserSaved}
+            onClearDiagnostic={handleClearDiagnostic}
+            onClearMonthly={handleClearMonthly}
           />
         )}
 
