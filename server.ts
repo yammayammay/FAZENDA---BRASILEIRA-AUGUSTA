@@ -89,6 +89,14 @@ function calculateMetrics(formState: FormState) {
 
   const costPerAnimalMonth = totalHeads > 0 ? totalMonthlyFeedCost / totalHeads : 0;
 
+  // Custos operacionais fixos informados no Bloco 06 (NÃO são custos de alimentação)
+  const custoOperacionalFixo =
+    Number(formState.maoDeObraDireta || 0) +
+    Number(formState.sanidade || 0) +
+    Number(formState.manutencaoEquip || 0) +
+    Number(formState.custoExtra || 0) +
+    Number(formState.custoNaoAlimentacao || 0);
+
   // Suggested sizing calculations
   // Vertical Mixer size: We recommend a mixer that can process the daily demand in standard batches.
   // Generally, cows eat concentrado (around 1.5% to 2.5% of body weight for dry matter, but pasture provides forage).
@@ -114,6 +122,7 @@ function calculateMetrics(formState: FormState) {
     totalMsDia: parseFloat(totalMsDia.toFixed(1)),
     totalMsMes: parseFloat(totalMsMes.toFixed(1)),
     totalMonthlyFeedCost,
+    custoOperacionalFixo,
     costPerAnimalMonth: parseFloat(costPerAnimalMonth.toFixed(2)),
     suggestedMixerCapacityKg,
     suggestedSiloVolumeM3,
@@ -233,6 +242,7 @@ function buildFormMirror(f: FormState, m: any): string {
   line("Sanidade (R$/mês)", f.sanidade);
   line("Manutenção de equipamentos (R$/mês)", f.manutencaoEquip);
   line("Outro custo (R$/mês)", `${f.custoExtra} ${f.descCustoExtra ? "(" + f.descCustoExtra + ")" : ""}`);
+  line("CUSTO OPERACIONAL FIXO TOTAL (R$/mês)", (m.custoOperacionalFixo || 0).toLocaleString("pt-BR"));
   line("Rotina de apuração de custos", f.rotinaCustos);
 
   L.push("\nBLOCO 07 — INFRAESTRUTURA EXISTENTE (EQUIPAMENTOS E INSTALAÇÕES)");
@@ -322,7 +332,7 @@ function buildOfflineAnalysis(f: FormState, m: any): string {
   A.push(`• BLOCO 03 (Desempenho/Genética): GMD de terminação informado de ${f.boiGmd} kg/dia; peso de abate alvo de ${f.pesoAlvo} kg em ~${f.tempoAprov} dias. Raças: ${(f.racas && f.racas.length) ? f.racas.join(", ") : (f.racaPredominante || "não informado")}. GMD baixo costuma indicar gargalo nutricional ou de pasto — alvo claro para a ração própria.`);
   A.push(`• BLOCO 04 (Comercialização): arroba a R$ ${f.precoArroba}, destino ${f.destinoPrincipal || "não informado"}, custo de comercialização de R$ ${f.custoComercializacao || 0}/cabeça. Esses custos entram no cálculo da margem que a fábrica própria pode liberar.`);
   A.push(`• BLOCO 05 (Pastagem & Suplementação — TEMA CENTRAL): pasto em estado "${f.estadoMedioPastagem || "não informado"}", sistema ${f.sistemaPastejo || "não informado"}, controle de pasto por "${f.metodoControlePastejo || "não informado"}". ${pastoCritico ? "O grau de degradação indicado exige plano de recuperação de pasto e reforço de volumoso de cocho na seca." : "Mantenha o monitoramento de altura/oferta de forragem."} Suplementos atuais: ${(f.suplementos || []).join(", ") || "nenhum"}. ${usaCamaFrango ? "ALERTA SANITÁRIO: cama de frango é PROIBIDA para ruminantes (IN 08/2004 MAPA) — recomenda-se suspender imediatamente. " : ""}${usaUreia ? "O uso de ureia exige adaptação gradual e mistura homogênea — ponto a favor de um misturador adequado. " : ""}Planejamento relatado: ${f.planejamentoSuplemento || "não informado"}.`);
-  A.push(`• BLOCO 06 (Custos): mão de obra R$ ${f.maoDeObraDireta}/mês, sanidade R$ ${f.sanidade}/mês, manutenção R$ ${f.manutencaoEquip}/mês. O custo mensal estimado de alimentação apurado é de R$ ${m.totalMonthlyFeedCost?.toLocaleString?.("pt-BR") || m.totalMonthlyFeedCost} (R$ ${m.costPerAnimalMonth}/cab/mês).`);
+  A.push(`• BLOCO 06 (Custos operacionais fixos): mão de obra R$ ${f.maoDeObraDireta || 0}/mês, manejo sanitário R$ ${f.sanidade || 0}/mês, manutenção de equipamentos R$ ${f.manutencaoEquip || 0}/mês, outros R$ ${f.custoExtra || 0}/mês — totalizando um CUSTO OPERACIONAL FIXO de R$ ${(m.custoOperacionalFixo || 0).toLocaleString("pt-BR")}/mês. ${m.totalMonthlyFeedCost === 0 ? "O custo de alimentação aparece como R$ 0 apenas porque não foi itemizado nos campos de pastagem/volumoso/suplemento — isso não significa ausência de gestão; os custos fixos acima foram informados normalmente." : "O custo mensal de alimentação apurado é de R$ " + (m.totalMonthlyFeedCost?.toLocaleString?.("pt-BR") || m.totalMonthlyFeedCost) + " (R$ " + m.costPerAnimalMonth + "/cab/mês)."}`);
   A.push(`• BLOCO 07 (Infraestrutura): ${f.equipments?.misturador?.possui ? "já há misturador" : "não há misturador"}; ${f.equipments?.moinho?.possui ? "moinho presente" : "sem moinho"}; energia trifásica ${temTrifasica ? "ativa (favorece moagem/mistura eficiente)" : "ausente/indefinida (avaliar adequação elétrica antes do CAPEX)"}. Equipamentos já existentes reduzem o CAPEX necessário.`);
   A.push(`• BLOCO 08 (Estratégia): vocação "${f.vocacaoPropriedade || "não informado"}"; papel pretendido da fábrica: "${f.papelFabricaRacao || "não informado"}"; metas de ${f.metaSurgimento24} (24m) e ${f.metaSurgimento36} (36m) cabeças; CAPEX de R$ ${f.capexOrcamento} com payback meta de "${f.paybackMeta || "não informado"}".`);
 
@@ -368,8 +378,16 @@ REBANHO E MÉTRICAS CALCULADAS:
 - Total de Animais: ${keyMetrics.totalHeads} cabeças
 - Biomassa Total: ${keyMetrics.totalBiomass} kg Peso Vivo (PV)
 - Demanda Estimada de Matéria Seca: ${keyMetrics.totalMsDia} kg MS/dia (~${keyMetrics.totalMsMes} kg MS/mês)
-- Custo Total Estimado de Alimentação Atual: R$ ${keyMetrics.totalMonthlyFeedCost}/mês
-- Custo Mensal por Cabeça: R$ ${keyMetrics.costPerAnimalMonth}/animal/mês
+- Custo Total Estimado de Alimentação Atual: R$ ${keyMetrics.totalMonthlyFeedCost}/mês ${keyMetrics.totalMonthlyFeedCost === 0 ? "(ATENÇÃO: este valor é R$ 0 apenas porque os custos de alimentação não foram itemizados nos campos de pastagem/volumoso/suplemento — NÃO conclua que a operação é inviável ou que não há gestão. Os custos operacionais fixos abaixo foram informados.)" : ""}
+- Custo Mensal por Cabeça (alimentação): R$ ${keyMetrics.costPerAnimalMonth}/animal/mês
+
+CUSTOS OPERACIONAIS FIXOS INFORMADOS (BLOCO 06 — não são alimentação):
+- Mão de obra direta: R$ ${formState.maoDeObraDireta || 0}/mês
+- Manejo sanitário (sanidade & medicamentos): R$ ${formState.sanidade || 0}/mês
+- Manutenção de equipamentos/máquinas: R$ ${formState.manutencaoEquip || 0}/mês
+- Outros custos alocados${formState.descCustoExtra ? " (" + formState.descCustoExtra + ")" : ""}: R$ ${formState.custoExtra || 0}/mês
+- CUSTO OPERACIONAL FIXO TOTAL (Bloco 06): R$ ${keyMetrics.custoOperacionalFixo}/mês
+- Rotina de controle de custos relatada: ${formState.rotinaCustos || "não informada"}
 
 DESEMPENHO ESPERADO:
 - GMDs Médios: Bezerros (${formState.bezerroDesmGmd} kg/dia), Bois (${formState.boiGmd} kg/dia), Garrotes (${formState.garroteGmd} kg/dia), Novilhas (${formState.novilhaGmd} kg/dia), Vacas (${formState.vacaGmd} kg/dia).
