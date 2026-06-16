@@ -14,6 +14,7 @@ export default function ChatAssistant({ formState }: ChatAssistantProps) {
   const [loading, setLoading] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const userHasSentRef = useRef(false);
 
   // Initial greeting
   useEffect(() => {
@@ -36,13 +37,16 @@ Estou integrado em tempo real com as informações do seu questionário da **Faz
     }
   }, [formState.nomeProdutor]);
 
-  // Autoscroll
+  // Autoscroll — apenas depois que o usuário interage, e contido na própria caixa do chat
+  // (evita que a página role sozinha para o chat ao abrir)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!userHasSentRef.current) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, loading]);
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() || loading) return;
+    userHasSentRef.current = true;
 
     const userMsg: ChatMessage = {
       id: Math.random().toString(),
