@@ -269,6 +269,7 @@ function buildFormMirror(f: FormState, m: any): string {
   line("Meses de maior venda", (f.sazonalidade || []).join(", "));
   line("Meta de receita anual (R$)", f.metaReceitaAnual);
   line("Rotina comercial", f.rotinaComercial);
+  line("Controle de lucro/negociação da pecuária", f.controleLucratividade);
 
   L.push("\nBLOCO 05 — ALIMENTAÇÃO E PASTAGEM");
   line("Área total de pastagem (ha)", f.areaTotalPastagem);
