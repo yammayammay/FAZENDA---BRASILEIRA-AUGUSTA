@@ -77,6 +77,7 @@ export interface FormState {
   sazonalidade: string[]; // list of months e.g. ["Jan", "Fev"]
   metaReceitaAnual: number;
   rotinaComercial: string;
+  controleLucratividade?: string; // Bloco 04 — controle de lucro/negociação da pecuária
 
   // Bloco 05 - Dieta Atual
   areaTotalPastagem: number;
