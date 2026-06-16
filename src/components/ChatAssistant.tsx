@@ -98,7 +98,7 @@ Estou integrado em tempo real com as informações do seu questionário da **Faz
   };
 
   const chips = [
-    { label: "Análise de Maresia RN", prompt: "Quais cuidados específicos com maresia e clima de Nísia Floresta RN preciso ter na fábrica?" },
+    { label: "Parecer de Viabilidade", prompt: "Com base nos dados que preenchi, a implantação de uma fábrica de ração própria é tecnicamente indicada para esta propriedade? Dê um parecer objetivo com os principais ganhos, os riscos, o investimento necessário e uma estimativa de payback." },
     { label: "Calcular Confinamento", prompt: "Considerando meu rebanho ideal, qual a demanda diária de grãos e concentrado para semi-confinamento?" },
     { label: "Sugestão de Maquinário", prompt: "Qual a diferença exata e o custo entre o misturador vertical e o misturador horizontal para mim?" },
   ];

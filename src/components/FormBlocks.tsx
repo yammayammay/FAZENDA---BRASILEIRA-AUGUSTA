@@ -57,7 +57,7 @@ export default function FormBlocks({
   };
 
   // Handle nested state edits for Block 7: Infraestrutura Existente
-  const handleEquipmentChange = (equipKey: string, field: "possui" | "status" | "capacidade" | "obs", val: any) => {
+  const handleEquipmentChange = (equipKey: string, field: "possui" | "status" | "capacidade" | "especificacoes" | "obs", val: any) => {
     const updatedState = { ...formState };
     if (updatedState.equipments[equipKey]) {
       updatedState.equipments[equipKey] = {
@@ -184,17 +184,6 @@ export default function FormBlocks({
               onChange={(e) => handleSimpleFieldChange("contatoZap", e.target.value)}
               className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
               placeholder="(84) 99999-0000"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] text-stone-600 font-medium mb-1">E-mail para Receber o Laudo PDF *</label>
-            <input
-              type="email"
-              required
-              value={formState.email}
-              onChange={(e) => handleSimpleFieldChange("email", e.target.value)}
-              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
-              placeholder="seuemail@exemplo.com"
             />
           </div>
           <div>
@@ -372,6 +361,9 @@ export default function FormBlocks({
 
         <div>
           <label className="block text-[11px] text-stone-600 font-medium mb-1">Como o plantel é controlado na prática hoje? *</label>
+          <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+            Se não há registros de pesagem, categorização formal ou identificação individual dos animais, descreva como o rebanho é acompanhado hoje. Ex.: "nunca pesamos os animais", "o peão conhece cada animal pelo apelido", "sabemos o total mas não separamos por categoria", "compramos X animais há Y meses mas não registramos"…
+          </p>
           <textarea
             required
             rows={2}
@@ -393,6 +385,12 @@ export default function FormBlocks({
             <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 03: Desempenho Produtivo - GMD e Ciclo de Produção</h3>
             <span className="text-[10px] text-stone-500 font-mono font-normal">Ganhos médios de peso e ciclo de abate</span>
           </div>
+        </div>
+
+        <div className="bg-primary/5 border border-primary/15 rounded-lg p-3">
+          <p className="text-[10px] text-stone-600 leading-snug">
+            <strong>Como obter o GMD:</strong> GMD (kg/dia) = (PV final − PV inicial) ÷ nº de dias entre pesagens. Se não houver dados de pesagens sequenciais, informe "não medido" e indique qual é a estimativa do gerente.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-stone-50/50 p-4 rounded-xl border border-stone-100">
@@ -572,6 +570,9 @@ export default function FormBlocks({
 
         <div>
           <label className="block text-[11px] text-stone-600 font-medium mb-1">Como o desempenho de peso é acompanhado hoje? *</label>
+          <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+            Se o GMD nunca foi medido, o ciclo de terminação não é rastreado ou as decisões de venda são tomadas "no olho", descreva como isso funciona na prática. Ex.: "vendemos quando o animal parece gordo o suficiente", "o frigorífico manda buscar e a gente não controla o peso", "nunca pesamos antes e depois para calcular ganho", "o boi fica no pasto até o comprador aparecer"…
+          </p>
           <textarea
             required
             rows={2}
@@ -593,6 +594,13 @@ export default function FormBlocks({
             <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 04: Precificação e Recebimento de Valores</h3>
             <span className="text-[10px] text-stone-500 font-mono">Retornos de boi gordo e comercialização</span>
           </div>
+        </div>
+
+        <div className="bg-primary/5 border-l-4 border-primary rounded-sm p-3">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-wide block mb-1">Por que isso importa?</span>
+          <p className="text-[11px] text-stone-600 leading-snug">
+            O preço da arroba define quanto custa cada kg de peso vivo produzido. Esse número, cruzado com o custo da dieta, determina a margem real de conversão alimentar em reais — e, portanto, o retorno do investimento na fábrica.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -696,6 +704,9 @@ export default function FormBlocks({
 
         <div>
           <label className="block text-[11px] text-stone-600 font-medium mb-1">Como a venda e recebimentos funcionam na prática? *</label>
+          <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+            Se não há controle financeiro formal, o preço da arroba não é acompanhado sistematicamente ou as vendas acontecem de forma não planejada, descreva como é na prática. Ex.: "vendemos quando precisamos de dinheiro", "o atravessador liga e a gente negocia na hora", "não sabemos o preço exato que recebemos por arroba", "o pagamento entra na conta mas não registramos separado de outras receitas"…
+          </p>
           <textarea
             required
             rows={2}
@@ -704,6 +715,11 @@ export default function FormBlocks({
             className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
             placeholder="Ex: Ligamos para boiadeiros, negociamos com base no preço do jornal/frigorífico..."
           />
+          <div className="mt-2 bg-stone-50 border border-stone-200 rounded-sm p-2.5">
+            <p className="text-[10px] text-stone-500 leading-snug">
+              Ao responder, ajude a esclarecer: <strong>Como a fazenda sabe se está lucrando com o gado?</strong> Existe algum controle de quanto entra e quanto sai relacionado especificamente à pecuária? Quem negocia a venda e como se dá essa negociação?
+            </p>
+          </div>
         </div>
       </div>
 
@@ -717,6 +733,13 @@ export default function FormBlocks({
             <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 05: Dieta Atual - Fontes Nutricionais e Volumes</h3>
             <span className="text-[10px] text-stone-500 font-mono">Pastagem, volumosos complementares e suplementos concentrados</span>
           </div>
+        </div>
+
+        <div className="bg-primary/5 border-l-4 border-primary rounded-sm p-3">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-wide block mb-1">Objetivo desta seção</span>
+          <p className="text-[11px] text-stone-600 leading-snug">
+            Mapear todos os insumos alimentares que entram na propriedade — comprados, produzidos internamente (pasto, bagaço, vinhaça) e subprodutos da Fazenda Brasileira Augusta — para calcular o custo total atual com alimentação e identificar o que pode ser produzido na fábrica.
+          </p>
         </div>
 
         {/* Pasto sub-section */}
@@ -861,6 +884,25 @@ export default function FormBlocks({
                 className="w-full text-xs p-2 rounded-lg border border-stone-300"
                 placeholder="Ex: vedação, pastejo rotacionado… ou 'não aplicamos técnicas específicas'"
               />
+            </div>
+          </div>
+
+          {/* Piquetes / manejo rotativo */}
+          <div className="bg-stone-50/60 p-3 rounded-lg space-y-3 mt-1">
+            <span className="text-[10px] font-mono font-semibold text-stone-600">PIQUETES (para manejo alternado/rotativo — deixe 0 se não se aplica)</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[11px] text-stone-600 font-medium mb-1">Nº de piquetes</label>
+                <input type="number" value={formState.numPiquetes} onChange={(e) => handleSimpleFieldChange("numPiquetes", Number(e.target.value))} className="w-full text-xs p-2 rounded-lg border border-stone-300 font-mono text-center" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-stone-600 font-medium mb-1">Tamanho médio do piquete (ha)</label>
+                <input type="number" step="0.1" value={formState.tamanhoMedioPiqueteHa || 0} onChange={(e) => handleSimpleFieldChange("tamanhoMedioPiqueteHa", Number(e.target.value))} className="w-full text-xs p-2 rounded-lg border border-stone-300 font-mono text-center" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-stone-600 font-medium mb-1">Tempo de ocupação/descanso</label>
+                <input type="text" value={formState.infoPiquetes || ""} onChange={(e) => handleSimpleFieldChange("infoPiquetes", e.target.value)} className="w-full text-xs p-2 rounded-lg border border-stone-300" placeholder="Ex: 3 dias de pastejo, 30 de descanso" />
+              </div>
             </div>
           </div>
         </div>
@@ -1025,14 +1067,34 @@ export default function FormBlocks({
 
         <div>
           <label className="block text-[11px] text-stone-600 font-medium mb-1">Como a alimentação do gado funciona de fato na prática? *</label>
+          <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+            Se a dieta não é planejada, os volumes de ração/suplemento não são medidos, ou o gado "come o que tem", descreva como a alimentação é gerenciada de fato. Ex.: "o gado fica no pasto o dia todo e só recebe sal mineral", "compramos ração quando o saco acaba", "o peão joga uma quantidade no cocho por dia mas não pesamos", "usamos bagaço de cana mas não sabemos quanto", "a dieta muda conforme o que tiver disponível e o preço"…
+          </p>
           <textarea
             required
-            rows={2}
+            rows={3}
             value={formState.rotinaAlimentacao}
             onChange={(e) => handleSimpleFieldChange("rotinaAlimentacao", e.target.value)}
             className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
-            placeholder="Ex: Vaqueiros colocam de manhã e de tarde nos cochos de madeira dos piquetes..."
+            placeholder="Descreva a rotina real: quem faz, quando, como decide a quantidade, o que é oferecido em cada época do ano. Inclua o que vem da fazenda e o que é comprado de fora."
           />
+          <p className="text-[10px] italic text-stone-400 mt-1 leading-snug">
+            Descreva a rotina real de alimentação: quem faz, quando, como decide a quantidade, o que é oferecido em cada época do ano — incluindo o que vem da própria fazenda e o que é comprado de fora.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-[11px] text-stone-600 font-medium mb-1">Quem elabora e calcula a dieta dos animais?</label>
+          <select value={formState.responsavelDieta || ""} onChange={(e) => handleSimpleFieldChange("responsavelDieta", e.target.value)} className="w-full text-xs p-2.5 rounded-lg border border-stone-300 bg-white">
+            <option value="">Selecione...</option>
+            <option value="Zootecnista">Zootecnista</option>
+            <option value="Nutricionista animal">Nutricionista animal</option>
+            <option value="Médico veterinário">Médico veterinário</option>
+            <option value="Técnico agropecuário">Técnico agropecuário</option>
+            <option value="Consultor da revenda/fornecedor">Consultor da revenda/fornecedor</option>
+            <option value="O próprio gerente/proprietário">O próprio gerente/proprietário</option>
+            <option value="Ninguém — feito no empírico">Ninguém — feito no empírico</option>
+          </select>
         </div>
 
         <div className="bg-cream/60 p-4 rounded-xl border-l-4 border-accent space-y-1">
@@ -1060,6 +1122,13 @@ export default function FormBlocks({
             <h3 className="font-display font-semibold text-stone-900 text-sm">Bloco 06: Custo Operacional e Custos Fixos</h3>
             <span className="text-[10px] text-stone-500 font-mono">Despesas operacionais diretas e indiretas</span>
           </div>
+        </div>
+
+        <div className="bg-primary/5 border-l-4 border-primary rounded-sm p-3">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-wide block mb-1">Objetivo desta seção</span>
+          <p className="text-[11px] text-stone-600 leading-snug">
+            Consolidação dos custos informados nas seções anteriores. O custo por arroba produzida é o denominador de todo o cálculo de viabilidade da fábrica — é ele que dirá se produzir ração própria realmente reduz o custo da operação.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1148,17 +1217,18 @@ export default function FormBlocks({
               <tr>
                 <th className="px-3 py-2">Maquinário Coletivo</th>
                 <th className="px-3 py-2 w-[110px]">Possui?</th>
-                <th className="px-3 py-2 w-[140px]">Estado Ativo</th>
-                <th className="px-3 py-2">Capacidade Nominal / Observações</th>
+                <th className="px-3 py-2 w-[160px]">Estado Ativo</th>
+                <th className="px-3 py-2">Capacidade / Especificações / Observação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
               {[
                 { key: "balancaTronco", label: "Balança de Tronco (Controle Peso)" },
                 { key: "forrageira", label: "Forrageira / Picadeira" },
-                { key: "misturador", label: "Misturador de Ração Concentrada" },
+                { key: "misturador", label: "Misturador de Ração" },
                 { key: "moinho", label: "Moinho Triturador (Milho/Fubá)" },
-                { key: "trator", label: "Trator Operacional" },
+                { key: "trator", label: "Trator" },
+                { key: "balancaPesagem", label: "Balança de Pesagem de Insumos / Ração" },
                 { key: "deposito", label: "Depósito / Galpão de Insumos" },
               ].map((item) => {
                 const eq = formState.equipments[item.key as keyof typeof formState.equipments];
@@ -1176,25 +1246,45 @@ export default function FormBlocks({
                       </select>
                     </td>
                     <td className="px-3 py-1">
-                      <select
-                        value={eq.status}
-                        onChange={(e) => handleEquipmentChange(item.key, "status", e.target.value)}
-                        className="p-1 rounded bg-white border border-stone-300 text-[10px] w-full"
-                      >
-                        <option value="Excelente">Excelente</option>
-                        <option value="Mapeado">Mapeado (Usado)</option>
-                        <option value="Danificado">Danificado</option>
-                        <option value="Inexistente">Inexistente</option>
-                      </select>
+                      {eq.possui ? (
+                        <select
+                          value={eq.status}
+                          onChange={(e) => handleEquipmentChange(item.key, "status", e.target.value)}
+                          className="p-1 rounded bg-white border border-stone-300 text-[10px] w-full"
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="Operando plenamente">Operando plenamente</option>
+                          <option value="Operando parcialmente">Operando parcialmente</option>
+                          <option value="Inoperante">Inoperante</option>
+                        </select>
+                      ) : (
+                        <span className="text-[10px] text-stone-400 italic">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-1 font-mono">
-                      <input
-                        type="text"
-                        value={eq.obs}
-                        onChange={(e) => handleEquipmentChange(item.key, "obs", e.target.value)}
-                        className="w-full text-[11px] p-1.5 rounded border border-stone-300"
-                        placeholder="Capacidade ou observação..."
-                      />
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          value={eq.capacidade}
+                          onChange={(e) => handleEquipmentChange(item.key, "capacidade", e.target.value)}
+                          className="w-full text-[11px] p-1.5 rounded border border-stone-300"
+                          placeholder="Capacidade (ex.: kg)"
+                        />
+                        <input
+                          type="text"
+                          value={eq.especificacoes || ""}
+                          onChange={(e) => handleEquipmentChange(item.key, "especificacoes", e.target.value)}
+                          className="w-full text-[11px] p-1.5 rounded border border-stone-300"
+                          placeholder="Especificações / modelo"
+                        />
+                        <input
+                          type="text"
+                          value={eq.obs}
+                          onChange={(e) => handleEquipmentChange(item.key, "obs", e.target.value)}
+                          className="w-full text-[11px] p-1.5 rounded border border-stone-300"
+                          placeholder="Observação"
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1241,9 +1331,12 @@ export default function FormBlocks({
 
         <div>
           <label className="block text-[11px] text-stone-600 font-medium mb-1">Como a infraestrutura é mantida hoje? *</label>
+          <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+            Se os equipamentos não têm manutenção programada, a situação real é diferente do que foi marcado acima, ou há limitações de uso que as opções não capturam, descreva aqui. Ex.: "a balança existe mas ninguém sabe usar direito", "o trator quebra com frequência e fica parado", "o galpão existe mas está tomado por outra coisa", "não temos onde guardar insumos com segurança", "a energia cai muito e não temos gerador". Descreva o estado real da infraestrutura: o que funciona bem, o que funciona mal, o que existe mas não é usado, o que faz falta — incluindo qualquer limitação física ou operacional relevante.
+          </p>
           <textarea
             required
-            rows={2}
+            rows={3}
             value={formState.rotinaInfra}
             onChange={(e) => handleSimpleFieldChange("rotinaInfra", e.target.value)}
             className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
@@ -1374,6 +1467,9 @@ export default function FormBlocks({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] text-stone-500 font-mono mb-1">Visão do proprietário</label>
+              <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+                Há alguma restrição de processo, logística ou regulatória que o projeto deve considerar? Ex.: limitação de energia elétrica, restrição de licença ambiental, acesso restrito ao galpão em períodos de safra da cana, etc.
+              </p>
               <textarea
                 rows={2}
                 value={formState.visaoProprietario || ""}
@@ -1449,7 +1545,14 @@ export default function FormBlocks({
         <div className="max-w-md mx-auto">
           <h4 className="font-serif font-bold text-stone-900 text-base">Pronto para Consolidar e Analisar?</h4>
           <p className="text-xs text-stone-600 mt-1">
-            Ao submeter, o sistema criará o laudo técnico estratégico via <code className="bg-white px-1 py-0.5 rounded-sm border border-warm-border text-primary font-mono text-[10px]">gemini-3.5-flash</code> em tempo real, enviará alertas de emails simulados e gerará o laudo PDF estruturado para download.
+            Ao submeter, o sistema gera o laudo técnico estratégico (espelho do formulário, análise por bloco, parecer geral e Referencial Técnico) e baixa o PDF estruturado.
+          </p>
+        </div>
+
+        <div className="max-w-md mx-auto bg-amber-50 border border-amber-300 rounded-sm p-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-800 text-left leading-snug">
+            <strong>Importante:</strong> este formulário não possui banco de dados. Ao fechar ou recarregar a página, as informações preenchidas são perdidas. <strong>Salve o PDF gerado</strong> para guardar o seu laudo.
           </p>
         </div>
 
