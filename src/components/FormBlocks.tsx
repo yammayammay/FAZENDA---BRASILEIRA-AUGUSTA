@@ -716,9 +716,19 @@ export default function FormBlocks({
             placeholder="Ex: Ligamos para boiadeiros, negociamos com base no preço do jornal/frigorífico..."
           />
           <div className="mt-2 bg-stone-50 border border-stone-200 rounded-sm p-2.5">
-            <p className="text-[10px] text-stone-500 leading-snug">
-              Ao responder, ajude a esclarecer: <strong>Como a fazenda sabe se está lucrando com o gado?</strong> Existe algum controle de quanto entra e quanto sai relacionado especificamente à pecuária? Quem negocia a venda e como se dá essa negociação?
+            <label className="block text-[11px] text-stone-700 font-medium mb-1">
+              Como a fazenda sabe se está lucrando com o gado?
+            </label>
+            <p className="text-[10px] italic text-stone-400 mb-1.5 leading-snug">
+              Existe algum controle de quanto entra e quanto sai relacionado especificamente à pecuária? Quem negocia a venda e como se dá essa negociação? Responda no campo abaixo.
             </p>
+            <textarea
+              rows={2}
+              value={formState.controleLucratividade || ""}
+              onChange={(e) => handleSimpleFieldChange("controleLucratividade", e.target.value)}
+              className="w-full text-xs p-2.5 rounded-lg border border-stone-300 focus:ring-1 focus:ring-primary focus:outline-none"
+              placeholder="Ex: não temos controle separado da pecuária; quem negocia é o proprietário direto com o boiadeiro..."
+            />
           </div>
         </div>
       </div>
