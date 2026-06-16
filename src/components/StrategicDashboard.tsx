@@ -13,7 +13,11 @@ import {
   ChevronDown,
   Percent,
   CheckCircle,
-  Clock
+  Clock,
+  HardDrive,
+  Cloud,
+  CloudOff,
+  Trash2
 } from "lucide-react";
 import { Submission, MonthlyReport } from "../types.js";
 import { categoryLabels } from "../data.js";
@@ -38,6 +42,11 @@ interface StrategicDashboardProps {
   downloadPDF: (sub: Submission) => void;
   lastMonthly: MonthlyReport | null;
   downloadMonthlyPDF: (r: MonthlyReport) => void;
+  dbActive: boolean;
+  diagBrowserSaved: boolean;
+  monthlyBrowserSaved: boolean;
+  onClearDiagnostic: () => void;
+  onClearMonthly: () => void;
 }
 
 const COLORS = [
@@ -51,7 +60,12 @@ export default function StrategicDashboard({
   selectedSubmission,
   downloadPDF,
   lastMonthly,
-  downloadMonthlyPDF
+  downloadMonthlyPDF,
+  dbActive,
+  diagBrowserSaved,
+  monthlyBrowserSaved,
+  onClearDiagnostic,
+  onClearMonthly
 }: StrategicDashboardProps) {
   const currentSub = selectedSubmission || submissions[0];
   const [activeTab, setActiveTab] = useState<"visuals" | "emails">("visuals");
@@ -74,11 +88,39 @@ export default function StrategicDashboard({
     </div>
   );
 
+  // Selo "onde está salvo" + botão de limpar, com recado explicativo. Reutilizado nos dois modos.
+  const storagePanel = (browserSaved: boolean, hasReport: boolean, onClear: () => void) => (
+    <div className="bg-white border border-warm-border rounded-sm p-3 mb-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wide">Onde está salvo:</span>
+        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${browserSaved ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-stone-100 text-stone-400 border border-stone-200"}`}>
+          <HardDrive className="w-3 h-3" /> {browserSaved ? "Salvo no navegador" : "Não salvo no navegador"}
+        </span>
+        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full ${dbActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-stone-100 text-stone-400 border border-stone-200"}`}>
+          {dbActive ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />} {dbActive ? "Salvo no banco" : "Banco não configurado"}
+        </span>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <button
+          onClick={onClear}
+          disabled={!hasReport}
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-sm border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Limpar último registro
+        </button>
+        <span className="text-[9px] italic text-stone-400 text-right max-w-[260px] leading-snug">
+          Use este botão apenas quando for solicitar/gerar um novo relatório (diagnóstico ou mensal). Ele apaga o último registro do navegador e do banco.
+        </span>
+      </div>
+    </div>
+  );
+
   if (viewMode === "mensal") {
     const r = lastMonthly;
     return (
       <div className="space-y-4">
         {modeToggle}
+        {storagePanel(monthlyBrowserSaved, !!r, onClearMonthly)}
         {!r ? (
           <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 text-center text-sm text-stone-500">
             Nenhum acompanhamento mensal gerado nesta sessão. Preencha a aba "Acompanhamento Mensal" e clique em <strong>Gerar Relatório</strong> — o resumo do último mês aparecerá aqui.
@@ -118,6 +160,7 @@ export default function StrategicDashboard({
     return (
       <div className="space-y-4">
         {modeToggle}
+        {storagePanel(diagBrowserSaved, false, onClearDiagnostic)}
         <div className="bg-white border-y border-r border-warm-border border-l-4 border-primary rounded-sm p-6 text-center text-sm text-stone-500">
           Nenhum diagnóstico inicial cadastrado nesta sessão. Preencha a aba "Diagnóstico Inicial" e envie o questionário.
         </div>
@@ -152,6 +195,7 @@ export default function StrategicDashboard({
   return (
     <div className="space-y-6">
       {modeToggle}
+      {storagePanel(diagBrowserSaved, !!currentSub, onClearDiagnostic)}
       {/* Executive Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-primary text-white rounded-sm p-4 shadow-md border-b-4 border-accent">
